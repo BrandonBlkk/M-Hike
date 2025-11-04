@@ -12,10 +12,10 @@ export const databaseService = {
         ...hikeData,
         created_at: new Date().toISOString()
       };
-      
+
       const updatedHikes = [newHike, ...existingHikes];
       await AsyncStorage.setItem(HIKES_KEY, JSON.stringify(updatedHikes));
-      
+
       return { success: true, id: newHike.id };
     } catch (error) {
       console.error('Error saving hike:', error);
@@ -62,7 +62,7 @@ export const databaseService = {
         }
         return hike;
       });
-      
+
       await AsyncStorage.setItem(HIKES_KEY, JSON.stringify(updatedHikes));
       return { success: true };
     } catch (error) {

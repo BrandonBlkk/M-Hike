@@ -6,9 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from './screens/HomeScreen';
 import AddHikeScreen from './screens/AddHikeScreen';
-import AboutScreen from './screens/AboutScreen';
 import HikeListScreen from './screens/HikeListScreen';
 import MapScreen from './screens/MapScreen';
+import WeatherScreen from './screens/WeatherScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -29,7 +29,7 @@ export default function App() {
               borderTopRightRadius: 20,
               paddingBottom: 8,
               paddingTop: 8,
-              height: 80,
+              height: 90,
               shadowColor: '#000',
               shadowOffset: {
                 width: 0,
@@ -42,7 +42,7 @@ export default function App() {
               fontSize: 12,
               fontWeight: '500',
             },
-            headerShown: false, // Remove headers from all screens
+            headerShown: false,
           }}
         >
           <Tab.Screen 
@@ -86,12 +86,12 @@ export default function App() {
             }}
           />
           <Tab.Screen 
-            name="About" 
-            component={AboutScreen}
+            name="Weather" 
+            component={WeatherScreen}
             options={{
-              tabBarLabel: 'About',
+              tabBarLabel: 'Weather',
               tabBarIcon: ({ color, size }) => (
-                <Ionicons name="information-circle-outline" size={size} color={color} />
+                <Ionicons name="partly-sunny-outline" size={size} color={color} />
               ),
             }}
           />
