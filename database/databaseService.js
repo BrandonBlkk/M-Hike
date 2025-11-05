@@ -10,6 +10,9 @@ export const databaseService = {
       const newHike = {
         id: Date.now().toString(),
         ...hikeData,
+        route_type: hikeData.route_type || '',
+        is_completed: hikeData.is_completed || 0,
+        completed_date: hikeData.completed_date || null,
         created_at: new Date().toISOString()
       };
 
@@ -33,9 +36,12 @@ export const databaseService = {
         return hikes.map(hike => ({
           ...hike,
           date: new Date(hike.date),
+          completed_date: hike.completed_date ? new Date(hike.completed_date) : null,
           created_at: new Date(hike.created_at),
           photos: hike.photos || [],
-          locationCoords: hike.locationCoords || null
+          locationCoords: hike.locationCoords || null,
+          route_type: hike.route_type || '',
+          is_completed: hike.is_completed || 0
         }));
       }
       return [];
@@ -55,6 +61,9 @@ export const databaseService = {
             ...hike,
             ...hikeData,
             id: id,
+            route_type: hikeData.route_type || hike.route_type || '',
+            is_completed: hikeData.is_completed !== undefined ? hikeData.is_completed : hike.is_completed,
+            completed_date: hikeData.completed_date || hike.completed_date || null,
             created_at: hike.created_at,
             photos: hikeData.photos || hike.photos || [],
             locationCoords: hikeData.locationCoords || hike.locationCoords || null

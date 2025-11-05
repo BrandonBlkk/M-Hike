@@ -9,7 +9,8 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
-  Image
+  Image,
+  Switch
 } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Picker } from "@react-native-picker/picker";
@@ -27,16 +28,20 @@ export default function EditHikeScreen({ navigation, route }) {
     date: new Date(),
     parking: "",
     length: "",
+    route_type: "",
     difficulty: "",
     description: "",
     notes: "",
     weather: "",
     photos: [],
     locationCoords: null,
+    is_completed: 0,
+    completed_date: null
   });
 
   const [errors, setErrors] = useState({});
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCompletedDatePicker, setShowCompletedDatePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [hikeId, setHikeId] = useState(null);
@@ -52,12 +57,15 @@ export default function EditHikeScreen({ navigation, route }) {
         date: new Date(hikeToEdit.date) || new Date(),
         parking: hikeToEdit.parking || "",
         length: hikeToEdit.length ? hikeToEdit.length.toString() : "",
+        route_type: hikeToEdit.route_type || "",
         difficulty: hikeToEdit.difficulty || "",
         description: hikeToEdit.description || "",
         notes: hikeToEdit.notes || "",
         weather: hikeToEdit.weather || "",
         photos: hikeToEdit.photos || [],
         locationCoords: hikeToEdit.locationCoords || null,
+        is_completed: hikeToEdit.is_completed || 0,
+        completed_date: hikeToEdit.completed_date ? new Date(hikeToEdit.completed_date) : null
       });
     }
   }, [route.params?.hikeToEdit]);
@@ -95,6 +103,8 @@ export default function EditHikeScreen({ navigation, route }) {
     else if (isNaN(parseFloat(hike.length)) || parseFloat(hike.length) <= 0) 
       newErrors.length = "Length must be a valid number";
     if (!hike.difficulty) newErrors.difficulty = "Difficulty is required";
+    if (hike.is_completed === 1 && !hike.completed_date) 
+      newErrors.completed_date = "Completed date is required for completed hikes";
 
     setErrors(newErrors);
 
@@ -156,6 +166,12 @@ export default function EditHikeScreen({ navigation, route }) {
     handleChange("date", currentDate);
   };
 
+  const handleCompletedDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || hike.completed_date || new Date();
+    setShowCompletedDatePicker(Platform.OS === "ios");
+    handleChange("completed_date", currentDate);
+  };
+
   const formatLength = (text) => {
     // Allow only numbers and one decimal point
     const cleaned = text.replace(/[^0-9.]/g, '');
@@ -165,6 +181,14 @@ export default function EditHikeScreen({ navigation, route }) {
       return parts[0] + '.' + parts.slice(1).join('');
     }
     return cleaned;
+  };
+
+  const toggleCompletedStatus = (value) => {
+    const isCompleted = value ? 1 : 0;
+    handleChange('is_completed', isCompleted);
+    if (isCompleted && !hike.completed_date) {
+      handleChange('completed_date', new Date());
+    }
   };
 
   // Enhanced location function that gets coordinates
@@ -240,16 +264,14 @@ export default function EditHikeScreen({ navigation, route }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Green Background Section */}
       <View style={styles.greenBackground}>
-        {/* Title Bar - Fixed with safe area handling */}
+        {/* Title Bar */}
         <View style={[styles.titleBar]}>
           <Text style={styles.titleText}>Edit Hike</Text>
           <Text style={styles.subtitleText}>Update your hike details</Text>
         </View>
       </View>
 
-      {/* White Background Section for Form */}
       <View style={styles.whiteBackground}>
         <ScrollView 
           style={styles.scrollView}
@@ -355,6 +377,22 @@ export default function EditHikeScreen({ navigation, route }) {
           </View>
 
           <View style={styles.inputGroup}>
+            <Text style={styles.label}>Route Type</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={hike.route_type}
+                onValueChange={(itemValue) => handleChange("route_type", itemValue)}
+              >
+                <Picker.Item label="Select route type" value="" />
+                <Picker.Item label="Loop" value="Loop" />
+                <Picker.Item label="Out & Back" value="Out & Back" />
+                <Picker.Item label="Point to Point" value="Point to Point" />
+                <Picker.Item label="Lollipop" value="Lollipop" />
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Difficulty Level *</Text>
             <View style={[styles.pickerContainer, errors.difficulty && styles.inputError]}>
               <Picker
@@ -368,6 +406,48 @@ export default function EditHikeScreen({ navigation, route }) {
               </Picker>
             </View>
             {errors.difficulty && <Text style={styles.error}>{errors.difficulty}</Text>}
+          </View>
+
+          {/* Completion Status */}
+          <View style={styles.inputGroup}>
+            <View style={styles.completionContainer}>
+              <View style={styles.completionLabel}>
+                <Text style={styles.label}>Hike Completed</Text>
+                <Text style={styles.completionSubtitle}>
+                  {hike.is_completed ? 'Marked as completed' : 'Mark as planned'}
+                </Text>
+              </View>
+              <Switch
+                value={hike.is_completed === 1}
+                onValueChange={toggleCompletedStatus}
+                trackColor={{ false: '#f0f0f0', true: '#1E6A65' }}
+                thumbColor={hike.is_completed ? '#ffffff' : '#f4f3f4'}
+              />
+            </View>
+
+            {hike.is_completed === 1 && (
+              <View style={styles.completedDateContainer}>
+                <Text style={styles.label}>Completed Date *</Text>
+                <TouchableOpacity
+                  style={[styles.input, styles.dateInput, errors.completed_date && styles.inputError]}
+                  onPress={() => setShowCompletedDatePicker(true)}
+                >
+                  <Text style={styles.dateText}>
+                    {hike.completed_date ? hike.completed_date.toDateString() : 'Select completed date'}
+                  </Text>
+                </TouchableOpacity>
+                {showCompletedDatePicker && (
+                  <DateTimePicker
+                    value={hike.completed_date || new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={handleCompletedDateChange}
+                    maximumDate={new Date()}
+                  />
+                )}
+                {errors.completed_date && <Text style={styles.error}>{errors.completed_date}</Text>}
+              </View>
+            )}
           </View>
 
           {/* Photo Section */}
@@ -465,16 +545,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1E6A65',
   },
-  // Green Background Section
   greenBackground: {
     backgroundColor: '#1E6A65',
   },
-  // White Background Section for Form
   whiteBackground: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  // Title Bar - Updated for safe area handling
+  // Title Bar 
   titleBar: {
     backgroundColor: '#ffffffff',
     paddingVertical: 12,
@@ -494,7 +572,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 2,
   },
-  // Scroll View - Updated for safe area
+  // Scroll View
   scrollView: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -540,6 +618,28 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
     fontStyle: 'italic',
+  },
+  // Completion Status Styles
+  completionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  completionLabel: {
+    flex: 1,
+  },
+  completionSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  completedDateContainer: {
+    marginTop: 12,
   },
   // Photo Styles
   photoButtons: {

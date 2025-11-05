@@ -25,7 +25,7 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
-  // Load recent
+  // Load recent hikes
   useFocusEffect(
     React.useCallback(() => {
       loadRecentHikes();
@@ -44,6 +44,25 @@ export default function HomeScreen({ navigation }) {
     });
   };
 
+  // Get completion status badge
+  const getCompletionBadge = (hike) => {
+    if (hike.is_completed === 1) {
+      return (
+        <View style={styles.completedBadge}>
+          <Ionicons name="checkmark-circle" size={12} color="#4CAF50" />
+          <Text style={styles.completedText}>Completed</Text>
+        </View>
+      );
+    } else {
+      return (
+        <View style={styles.plannedBadge}>
+          <Ionicons name="time-outline" size={12} color="#FF9800" />
+          <Text style={styles.plannedText}>Planned</Text>
+        </View>
+      );
+    }
+  };
+
   const renderRecentHike = ({ item }) => (
     <TouchableOpacity 
       style={styles.recentHikeCard}
@@ -59,19 +78,41 @@ export default function HomeScreen({ navigation }) {
             {item.location}
           </Text>
         </View>
+        {getCompletionBadge(item)}
       </View>
+      
       <View style={styles.hikeDetails}>
-        <View style={styles.detailItem}>
-          <Ionicons name="calendar-outline" size={14} color="#666" />
-          <Text style={styles.detailText}>{formatDate(item.date)}</Text>
+        <View style={styles.detailsRow}>
+          <View style={styles.detailItem}>
+            <Ionicons name="calendar-outline" size={14} color="#666" />
+            <Text style={styles.detailText}>{formatDate(item.date)}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Ionicons name="walk-outline" size={14} color="#666" />
+            <Text style={styles.detailText}>{item.length} km</Text>
+          </View>
         </View>
-        <View style={styles.detailItem}>
-          <Ionicons name="walk-outline" size={14} color="#666" />
-          <Text style={styles.detailText}>{item.length} km</Text>
+        
+        <View style={styles.detailsRow}>
+          <View style={[styles.difficultyBadge, styles[`difficulty${item.difficulty}`]]}>
+            <Text style={styles.difficultyText}>{item.difficulty}</Text>
+          </View>
+          {item.route_type && (
+            <View style={styles.routeTypeBadge}>
+              <Ionicons name="git-merge-outline" size={12} color="#666" />
+              <Text style={styles.routeTypeText}>{item.route_type}</Text>
+            </View>
+          )}
         </View>
-        <View style={[styles.difficultyBadge, styles[`difficulty${item.difficulty}`]]}>
-          <Text style={styles.difficultyText}>{item.difficulty}</Text>
-        </View>
+
+        {item.is_completed === 1 && item.completed_date && (
+          <View style={styles.completedDateRow}>
+            <Ionicons name="checkmark-circle-outline" size={12} color="#4CAF50" />
+            <Text style={styles.completedDateText}>
+              Completed on {formatDate(item.completed_date)}
+            </Text>
+          </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -416,7 +457,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: '#f0f0f0',
-    width: 280,
+    width: 300,
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 4 },
@@ -425,7 +466,7 @@ const styles = StyleSheet.create({
   },
   hikeHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 12,
   },
   hikeIconContainer: {
@@ -439,6 +480,7 @@ const styles = StyleSheet.create({
   },
   hikeInfo: {
     flex: 1,
+    marginRight: 8,
   },
   recentHikeTitle: {
     fontSize: 16,
@@ -450,7 +492,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  // Completion Badges
+  completedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  completedText: {
+    color: '#4CAF50',
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  plannedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  plannedText: {
+    color: '#FF9800',
+    fontSize: 10,
+    fontWeight: '600',
+  },
   hikeDetails: {
+    gap: 8,
+  },
+  detailsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -482,6 +556,35 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     textTransform: 'uppercase',
+  },
+  // Route Type Badge
+  routeTypeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+  },
+  routeTypeText: {
+    fontSize: 10,
+    color: '#666',
+    fontWeight: '500',
+  },
+  // Completed Date Row
+  completedDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  completedDateText: {
+    fontSize: 11,
+    color: '#4CAF50',
+    fontWeight: '500',
   },
   loadingContainer: {
     padding: 40,

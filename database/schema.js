@@ -9,10 +9,13 @@ export const createTables = (db) => {
           date TEXT NOT NULL,
           parking TEXT NOT NULL,
           length REAL NOT NULL,
+          route_type TEXT,
           difficulty TEXT NOT NULL,
           description TEXT,
           notes TEXT,
           weather TEXT,
+          is_completed INTEGER DEFAULT 0,
+          completed_date TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );`,
         [],

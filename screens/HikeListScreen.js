@@ -50,6 +50,7 @@ export default function HikeListScreen({ navigation }) {
       hike.name.toLowerCase().includes(lowerCaseQuery) ||
       hike.location.toLowerCase().includes(lowerCaseQuery) ||
       hike.difficulty.toLowerCase().includes(lowerCaseQuery) ||
+      (hike.route_type && hike.route_type.toLowerCase().includes(lowerCaseQuery)) ||
       (hike.description && hike.description.toLowerCase().includes(lowerCaseQuery)) ||
       (hike.weather && hike.weather.toLowerCase().includes(lowerCaseQuery)) ||
       (hike.notes && hike.notes.toLowerCase().includes(lowerCaseQuery))
@@ -117,6 +118,7 @@ export default function HikeListScreen({ navigation }) {
       ]
     );
   };
+
   const handleEditHike = (hike) => {
     // Navigate to EditHikeScreen within the stack
     navigation.navigate('EditHike', { 
@@ -159,6 +161,25 @@ export default function HikeListScreen({ navigation }) {
     );
   };
 
+  // Get completion status badge
+  const getCompletionBadge = (hike) => {
+    if (hike.is_completed === 1) {
+      return (
+        <View style={styles.completedBadge}>
+          <Ionicons name="checkmark-circle" size={14} color="#2f8032ff" />
+          <Text style={styles.completedText}>Completed</Text>
+        </View>
+      );
+    } else {
+      return (
+        <View style={styles.plannedBadge}>
+          <Ionicons name="time-outline" size={14} color="#b96f00ff" />
+          <Text style={styles.plannedText}>Planned</Text>
+        </View>
+      );
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -171,7 +192,6 @@ export default function HikeListScreen({ navigation }) {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Green Background Section */}
       <View style={styles.greenBackground}>
         {/* Title Bar */}
         <View style={styles.titleBar}>
@@ -202,7 +222,6 @@ export default function HikeListScreen({ navigation }) {
         </View>
       </View>
 
-      {/* White Background Section for Card List */}
       <View style={styles.whiteBackground}>
         {filteredHikes.length === 0 ? (
           <View style={styles.emptyState}>
@@ -247,11 +266,19 @@ export default function HikeListScreen({ navigation }) {
                         style={styles.mainHikeImage}
                         resizeMode="cover"
                       />
+                      {/* Completion Badge on Image */}
+                      <View style={styles.imageBadge}>
+                        {getCompletionBadge(hike)}
+                      </View>
                     </View>
                   ) : (
                     <View style={styles.noImageContainer}>
                       <Ionicons name="image-outline" size={40} color="#999" />
                       <Text style={styles.noImageText}>No Image</Text>
+                      {/* Completion Badge on No Image */}
+                      <View style={styles.imageBadge}>
+                        {getCompletionBadge(hike)}
+                      </View>
                     </View>
                   )}
 
@@ -297,7 +324,7 @@ export default function HikeListScreen({ navigation }) {
                       onPress={() => {
                         Alert.alert(
                           hike.name,
-                          `Location: ${hike.location}\nDate: ${formatDate(hike.date)}\nLength: ${hike.length}km\nDifficulty: ${hike.difficulty}\nParking: ${hike.parking}\n${hike.description ? `Description: ${hike.description}\n` : ''}${hike.weather ? `Weather: ${hike.weather}` : ''}`
+                          `Location: ${hike.location}\nDate: ${formatDate(hike.date)}\nLength: ${hike.length}km\nDifficulty: ${hike.difficulty}\nParking: ${hike.parking}\nRoute Type: ${hike.route_type || 'Not specified'}\nStatus: ${hike.is_completed ? 'Completed' : 'Planned'}${hike.is_completed && hike.completed_date ? `\nCompleted Date: ${formatDate(hike.completed_date)}` : ''}\n${hike.description ? `Description: ${hike.description}\n` : ''}${hike.weather ? `Weather: ${hike.weather}` : ''}`
                         );
                       }}
                     >
@@ -321,6 +348,24 @@ export default function HikeListScreen({ navigation }) {
                           <Ionicons name="car-outline" size={16} color="#666" />
                           <Text style={styles.statText}>{hike.parking}</Text>
                         </View>
+                      </View>
+
+                      {/* Additional Info Row */}
+                      <View style={styles.additionalInfoRow}>
+                        {hike.route_type && (
+                          <View style={styles.infoItem}>
+                            <Ionicons name="git-merge-outline" size={14} color="#666" />
+                            <Text style={styles.infoText}>{hike.route_type}</Text>
+                          </View>
+                        )}
+                        {hike.is_completed === 1 && hike.completed_date && (
+                          <View style={styles.infoItem}>
+                            <Ionicons name="checkmark-circle-outline" size={14} color="#4CAF50" />
+                            <Text style={styles.completedDateText}>
+                              {formatDate(hike.completed_date)}
+                            </Text>
+                          </View>
+                        )}
                       </View>
 
                       {/* Additional Photos Section */}
@@ -385,11 +430,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1E6A65',
   },
-  // Green Background Section
   greenBackground: {
     backgroundColor: '#1E6A65',
   },
-  // White Background Section for Card List
   whiteBackground: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -532,11 +575,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#e8e8e8',
+    position: 'relative',
   },
   noImageText: {
     fontSize: 14,
     color: '#999',
     marginTop: 8,
+  },
+  imageBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+  // Completion Badges
+  completedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  completedText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  plannedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 152, 0, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  plannedText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   // Content Section
   hikeContent: {
@@ -594,7 +672,7 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 12,
     flexWrap: 'wrap',
   },
   statItem: {
@@ -608,6 +686,28 @@ const styles = StyleSheet.create({
     color: '#666',
     fontWeight: '500',
     marginLeft: 4,
+  },
+  // Additional Info Row
+  additionalInfoRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+    gap: 12,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  infoText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  completedDateText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '500',
   },
   // Difficulty Colors
   difficultyEasy: {

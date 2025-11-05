@@ -9,7 +9,8 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
-  Image
+  Image,
+  Switch
 } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Picker } from "@react-native-picker/picker";
@@ -27,32 +28,46 @@ export default function AddHikeScreen({ navigation }) {
     date: new Date(),
     parking: "",
     length: "",
+    route_type: "",
     difficulty: "",
     description: "",
     notes: "",
     weather: "",
     photos: [],
     locationCoords: null,
+    is_completed: 0,
+    completed_date: null
   });
 
   const [errors, setErrors] = useState({});
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showCompletedDatePicker, setShowCompletedDatePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
 
-  // Request permissions on component mount
   useEffect(() => {
     (async () => {
       const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
       const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
       const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
-      if (locationStatus !== 'granted') {
-        Alert.alert('Permission needed', 'Location permission is required to automatically get your location.');
+      if (locationStatus === 'granted') {
+        setLocationPermissionGranted(true);
+      } else {
+        Alert.alert(
+          'Location Permission Needed', 
+          'Location permission is required to automatically get your current location. Please enable it in settings.',
+          [{ text: "OK" }]
+        );
       }
       
       if (cameraStatus !== 'granted' || libraryStatus !== 'granted') {
-        Alert.alert('Permission needed', 'Camera and photo library permissions are required to add photos to your hikes.');
+        Alert.alert(
+          'Photo Permission Needed', 
+          'Camera and photo library permissions are required to add photos to your hikes.',
+          [{ text: "OK" }]
+        );
       }
     })();
   }, []);
@@ -64,12 +79,15 @@ export default function AddHikeScreen({ navigation }) {
       date: new Date(),
       parking: "",
       length: "",
+      route_type: "",
       difficulty: "",
       description: "",
       notes: "",
       weather: "",
       photos: [],
       locationCoords: null,
+      is_completed: 0,
+      completed_date: null
     });
     setErrors({});
   };
@@ -90,6 +108,8 @@ export default function AddHikeScreen({ navigation }) {
     else if (isNaN(parseFloat(hike.length)) || parseFloat(hike.length) <= 0) 
       newErrors.length = "Length must be a valid number";
     if (!hike.difficulty) newErrors.difficulty = "Difficulty is required";
+    if (hike.is_completed === 1 && !hike.completed_date) 
+      newErrors.completed_date = "Completed date is required for completed hikes";
 
     setErrors(newErrors);
 
@@ -97,7 +117,6 @@ export default function AddHikeScreen({ navigation }) {
       setIsSubmitting(true);
       
       try {
-        // Create new hike
         const result = await databaseService.saveHike(hike);
         
         if (result.success) {
@@ -148,10 +167,14 @@ export default function AddHikeScreen({ navigation }) {
     handleChange("date", currentDate);
   };
 
+  const handleCompletedDateChange = (event, selectedDate) => {
+    const currentDate = selectedDate || hike.completed_date || new Date();
+    setShowCompletedDatePicker(Platform.OS === "ios");
+    handleChange("completed_date", currentDate);
+  };
+
   const formatLength = (text) => {
-    // Allow only numbers and one decimal point
     const cleaned = text.replace(/[^0-9.]/g, '');
-    // Ensure only one decimal point
     const parts = cleaned.split('.');
     if (parts.length > 2) {
       return parts[0] + '.' + parts.slice(1).join('');
@@ -159,31 +182,82 @@ export default function AddHikeScreen({ navigation }) {
     return cleaned;
   };
 
-  // Enhanced location function that gets coordinates
+  const toggleCompletedStatus = (value) => {
+    const isCompleted = value ? 1 : 0;
+    handleChange('is_completed', isCompleted);
+    if (isCompleted && !hike.completed_date) {
+      handleChange('completed_date', new Date());
+    }
+  };
+
+  // Updated getCurrentLocation function
   const getCurrentLocation = async () => {
+    if (!locationPermissionGranted) {
+      Alert.alert(
+        "Location Permission Required",
+        "Please grant location permission in settings to use this feature.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     setGettingLocation(true);
     try {
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
+        timeout: 15000,
       });
 
-      // Reverse geocode to get address
-      const [address] = await Location.reverseGeocodeAsync({
+      const addresses = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
 
-      const locationName = address.city || address.region || 'Current Location';
-      
-      // Store both location name and coordinates
-      handleChange('location', locationName);
-      handleChange('locationCoords', {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-      
+      if (addresses && addresses.length > 0) {
+        const address = addresses[0];
+        let locationName = '';
+
+        if (address.city) {
+          locationName = address.city;
+          if (address.region) {
+            locationName += `, ${address.region}`;
+          }
+        } else if (address.region) {
+          locationName = address.region;
+        } else if (address.subregion) {
+          locationName = address.subregion;
+        } else if (address.country) {
+          locationName = address.country;
+        } else {
+          locationName = 'Current Location';
+        }
+
+        handleChange('location', locationName);
+        handleChange('locationCoords', {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+
+        // Automatically set location when user clicks OK
+        Alert.alert(
+          "Location Found",
+          `Location set to: ${locationName}`,
+          [
+            {
+              text: "OK",
+              onPress: () => handleChange('location', locationName)
+            }
+          ]
+        );
+      } else {
+        throw new Error("No address found for coordinates");
+      }
     } catch (error) {
-      Alert.alert("Error", "Failed to get current location");
+      Alert.alert(
+        "Location Error",
+        "Failed to get current location. Please make sure location services are enabled and try again.",
+        [{ text: "OK" }]
+      );
     } finally {
       setGettingLocation(false);
     }
@@ -347,6 +421,22 @@ export default function AddHikeScreen({ navigation }) {
           </View>
 
           <View style={styles.inputGroup}>
+            <Text style={styles.label}>Route Type</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={hike.route_type}
+                onValueChange={(itemValue) => handleChange("route_type", itemValue)}
+              >
+                <Picker.Item label="Select route type" value="" />
+                <Picker.Item label="Loop" value="Loop" />
+                <Picker.Item label="Out & Back" value="Out & Back" />
+                <Picker.Item label="Point to Point" value="Point to Point" />
+                <Picker.Item label="Lollipop" value="Lollipop" />
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Difficulty Level *</Text>
             <View style={[styles.pickerContainer, errors.difficulty && styles.inputError]}>
               <Picker
@@ -360,6 +450,48 @@ export default function AddHikeScreen({ navigation }) {
               </Picker>
             </View>
             {errors.difficulty && <Text style={styles.error}>{errors.difficulty}</Text>}
+          </View>
+
+          {/* Completion Status */}
+          <View style={styles.inputGroup}>
+            <View style={styles.completionContainer}>
+              <View style={styles.completionLabel}>
+                <Text style={styles.label}>Hike Completed</Text>
+                <Text style={styles.completionSubtitle}>
+                  {hike.is_completed ? 'Marked as completed' : 'Mark as planned'}
+                </Text>
+              </View>
+              <Switch
+                value={hike.is_completed === 1}
+                onValueChange={toggleCompletedStatus}
+                trackColor={{ false: '#f0f0f0', true: '#1E6A65' }}
+                thumbColor={hike.is_completed ? '#ffffff' : '#f4f3f4'}
+              />
+            </View>
+
+            {hike.is_completed === 1 && (
+              <View style={styles.completedDateContainer}>
+                <Text style={styles.label}>Completed Date *</Text>
+                <TouchableOpacity
+                  style={[styles.input, styles.dateInput, errors.completed_date && styles.inputError]}
+                  onPress={() => setShowCompletedDatePicker(true)}
+                >
+                  <Text style={styles.dateText}>
+                    {hike.completed_date ? hike.completed_date.toDateString() : 'Select completed date'}
+                  </Text>
+                </TouchableOpacity>
+                {showCompletedDatePicker && (
+                  <DateTimePicker
+                    value={hike.completed_date || new Date()}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={handleCompletedDateChange}
+                    maximumDate={new Date()}
+                  />
+                )}
+                {errors.completed_date && <Text style={styles.error}>{errors.completed_date}</Text>}
+              </View>
+            )}
           </View>
 
           {/* Photo Section */}
@@ -457,16 +589,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#1E6A65',
   },
-  // Green Background Section
   greenBackground: {
     backgroundColor: '#1E6A65',
   },
-  // White Background Section for Form
   whiteBackground: {
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  // Title Bar - Updated for safe area handling
+  // Title Bar
   titleBar: {
     backgroundColor: '#ffffffff',
     paddingVertical: 12,
@@ -486,7 +616,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 2,
   },
-  // Scroll View - Updated for safe area
+  // Scroll View
   scrollView: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -532,6 +662,28 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
     fontStyle: 'italic',
+  },
+  // Completion Status Styles
+  completionContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  completionLabel: {
+    flex: 1,
+  },
+  completionSubtitle: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 2,
+  },
+  completedDateContainer: {
+    marginTop: 12,
   },
   // Photo Styles
   photoButtons: {
