@@ -19,7 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { databaseService } from '../database/databaseService';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function AddHikeScreen({ navigation }) {
+export default function EditHikeScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const [hike, setHike] = useState({
     name: "",
@@ -39,6 +39,28 @@ export default function AddHikeScreen({ navigation }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [hikeId, setHikeId] = useState(null);
+
+  // Get hike data from navigation params
+  useEffect(() => {
+    if (route.params?.hikeToEdit) {
+      const hikeToEdit = route.params.hikeToEdit;
+      setHikeId(hikeToEdit.id);
+      setHike({
+        name: hikeToEdit.name || "",
+        location: hikeToEdit.location || "",
+        date: new Date(hikeToEdit.date) || new Date(),
+        parking: hikeToEdit.parking || "",
+        length: hikeToEdit.length ? hikeToEdit.length.toString() : "",
+        difficulty: hikeToEdit.difficulty || "",
+        description: hikeToEdit.description || "",
+        notes: hikeToEdit.notes || "",
+        weather: hikeToEdit.weather || "",
+        photos: hikeToEdit.photos || [],
+        locationCoords: hikeToEdit.locationCoords || null,
+      });
+    }
+  }, [route.params?.hikeToEdit]);
 
   // Request permissions on component mount
   useEffect(() => {
@@ -56,23 +78,6 @@ export default function AddHikeScreen({ navigation }) {
       }
     })();
   }, []);
-
-  const clearAllInputs = () => {
-    setHike({
-      name: "",
-      location: "",
-      date: new Date(),
-      parking: "",
-      length: "",
-      difficulty: "",
-      description: "",
-      notes: "",
-      weather: "",
-      photos: [],
-      locationCoords: null,
-    });
-    setErrors({});
-  };
 
   const handleChange = (field, value) => {
     setHike({ ...hike, [field]: value });
@@ -97,20 +102,23 @@ export default function AddHikeScreen({ navigation }) {
       setIsSubmitting(true);
       
       try {
-        // Create new hike
-        const result = await databaseService.saveHike(hike);
+        // Update existing hike
+        const result = await databaseService.updateHike(hikeId, hike);
         
         if (result.success) {
           Alert.alert(
-            "Hike Submitted", 
-            "Your hike has been successfully recorded!",
+            "Hike Updated", 
+            "Hike updated successfully!",
             [
               {
                 text: "OK",
                 onPress: () => {
-                  clearAllInputs();
                   setIsSubmitting(false);
-                  navigation.navigate('HikeList');
+                  // Call the callback to refresh the list if it exists
+                  if (route.params?.onHikeUpdated) {
+                    route.params.onHikeUpdated();
+                  }
+                  navigation.goBack();
                 }
               }
             ]
@@ -118,7 +126,7 @@ export default function AddHikeScreen({ navigation }) {
         } else {
           Alert.alert(
             "Error", 
-            "Failed to save hike. Please try again.",
+            "Failed to update hike. Please try again.",
             [
               {
                 text: "OK",
@@ -130,7 +138,7 @@ export default function AddHikeScreen({ navigation }) {
       } catch (error) {
         Alert.alert(
           "Error", 
-          "An error occurred while saving the hike.",
+          "An error occurred while updating the hike.",
           [
             {
               text: "OK",
@@ -236,8 +244,8 @@ export default function AddHikeScreen({ navigation }) {
       <View style={styles.greenBackground}>
         {/* Title Bar - Fixed with safe area handling */}
         <View style={[styles.titleBar]}>
-          <Text style={styles.titleText}>Add New Hike</Text>
-          <Text style={styles.subtitleText}>Enter your hike information</Text>
+          <Text style={styles.titleText}>Edit Hike</Text>
+          <Text style={styles.subtitleText}>Update your hike details</Text>
         </View>
       </View>
 
@@ -443,7 +451,7 @@ export default function AddHikeScreen({ navigation }) {
             disabled={isSubmitting}
           >
             <Text style={styles.buttonText}>
-              {isSubmitting ? "Adding..." : "Add Hike"}
+              {isSubmitting ? "Updating..." : "Update Hike"}
             </Text>
           </TouchableOpacity>
         </ScrollView>

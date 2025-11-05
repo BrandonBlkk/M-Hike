@@ -201,7 +201,7 @@ export default function MapScreen({ navigation, route }) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {hikes.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>🗺️</Text>
@@ -247,7 +247,7 @@ export default function MapScreen({ navigation, route }) {
           </MapView>
 
           {/* Map Controls */}
-          <View style={styles.mapControls}>
+          <View style={[styles.mapControls, { top: insets.top + 20 }]}>
             {/* Location Button */}
             <TouchableOpacity 
               style={styles.controlButton}
@@ -283,7 +283,7 @@ export default function MapScreen({ navigation, route }) {
 
           {/* Legend */}
           {showLegend && (
-            <View style={styles.legend}>
+            <View style={[styles.legend, { top: insets.top + 20 }]}>
               <Text style={styles.legendTitle}>Difficulty Legend</Text>
               <View style={styles.legendItem}>
                 <View style={[styles.legendColor, { backgroundColor: '#4CAF50' }]} />
@@ -301,14 +301,14 @@ export default function MapScreen({ navigation, route }) {
           )}
 
           {/* Map Type Indicator */}
-          <View style={styles.mapTypeIndicator}>
+          <View style={[styles.mapTypeIndicator, { bottom: insets.bottom + 20 }]}>
             <Text style={styles.mapTypeText}>
               {mapType === 'standard' ? 'Standard Map' : 'Satellite View'}
             </Text>
           </View>
 
           {/* Title Bar */}
-          <View style={styles.titleBar}>
+          <View style={[styles.titleBar]}>
             <Text style={styles.titleText}>Hike Locations</Text>
             <Text style={styles.subtitleText}>
               {hikes.length} hike{hikes.length !== 1 ? 's' : ''} on map
@@ -319,7 +319,7 @@ export default function MapScreen({ navigation, route }) {
 
       {/* Bottom Info Bar */}
       {hikes.length > 0 && (
-        <View style={styles.infoBar}>
+        <View style={[styles.infoBar]}>
           <Text style={styles.infoText}>
             Tap markers for hike details • {hikes.length} hikes visible
           </Text>
@@ -332,7 +332,7 @@ export default function MapScreen({ navigation, route }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffffff',
+    backgroundColor: '#1E6A65',
   },
   mapContainer: {
     flex: 1,
@@ -355,7 +355,6 @@ const styles = StyleSheet.create({
   // Map Controls
   mapControls: {
     position: 'absolute',
-    top: 110,
     right: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 5,
@@ -383,7 +382,6 @@ const styles = StyleSheet.create({
   // Legend
   legend: {
     position: 'absolute',
-    top: 110,
     left: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     padding: 12,
@@ -426,8 +424,7 @@ const styles = StyleSheet.create({
   // Map Type Indicator
   mapTypeIndicator: {
     position: 'absolute',
-    bottom: 80,
-    left: 20,
+    left: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -447,7 +444,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingTop: 40,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
@@ -474,8 +470,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E6A65',
     paddingVertical: 8,
     paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    borderTopWidth: 2,
+    borderTopColor: '#0d4643ff',
   },
   infoText: {
     fontSize: 12,

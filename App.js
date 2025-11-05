@@ -1,16 +1,29 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from './screens/HomeScreen';
 import AddHikeScreen from './screens/AddHikeScreen';
+import EditHikeScreen from './screens/EditHikeScreen';
 import HikeListScreen from './screens/HikeListScreen';
 import MapScreen from './screens/MapScreen';
 import WeatherScreen from './screens/WeatherScreen';
 
 const Tab = createBottomTabNavigator();
+const Stack = createStackNavigator();
+
+// Stack navigator for HikeList
+function HikeListStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HikeListMain" component={HikeListScreen} />
+      <Stack.Screen name="EditHike" component={EditHikeScreen} />
+    </Stack.Navigator>
+  );
+}
 
 export default function App() {
   return (
@@ -57,7 +70,7 @@ export default function App() {
           />
           <Tab.Screen 
             name="HikeList" 
-            component={HikeListScreen}
+            component={HikeListStack}
             options={{
               tabBarLabel: 'My Hikes',
               tabBarIcon: ({ color, size }) => (

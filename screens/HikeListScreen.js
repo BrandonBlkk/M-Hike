@@ -8,7 +8,8 @@ import {
   Alert,
   RefreshControl,
   TextInput,
-  Image
+  Image,
+  Platform
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -116,12 +117,11 @@ export default function HikeListScreen({ navigation }) {
       ]
     );
   };
-
   const handleEditHike = (hike) => {
-    // Navigate to AddHikeScreen with the hike data for editing
-    navigation.navigate('AddHike', { 
-      editHike: hike,
-      onHikeUpdated: loadHikes // Refresh the list after editing
+    // Navigate to EditHikeScreen within the stack
+    navigation.navigate('EditHike', { 
+      hikeToEdit: hike,
+      onHikeUpdated: loadHikes
     });
   };
 
@@ -161,7 +161,7 @@ export default function HikeListScreen({ navigation }) {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading hikes...</Text>
         </View>
@@ -170,206 +170,212 @@ export default function HikeListScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
-      {/* Title Bar */}
-      <View style={styles.titleBar}>
-        <Text style={styles.titleText}>My Hikes</Text>
-        <Text style={styles.subtitleText}>
-          {filteredHikes.length} hike{filteredHikes.length !== 1 ? 's' : ''} recorded
-          {searchQuery ? ` (${hikes.length} total)` : ''}
-        </Text>
-      </View>
-
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search hikes by name, location, difficulty..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            clearButtonMode="while-editing"
-          />
-          {searchQuery ? (
-            <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
-              <Ionicons name="close-circle" size={20} color="#666" />
-            </TouchableOpacity>
-          ) : null}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Green Background Section */}
+      <View style={styles.greenBackground}>
+        {/* Title Bar */}
+        <View style={styles.titleBar}>
+          <Text style={styles.titleText}>My Hikes</Text>
+          <Text style={styles.subtitleText}>
+            {filteredHikes.length} hike{filteredHikes.length !== 1 ? 's' : ''} recorded
+            {searchQuery ? ` (${hikes.length} total)` : ''}
+          </Text>
         </View>
-      </View>
 
-      {filteredHikes.length === 0 ? (
-        <View style={styles.emptyState}>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchInputContainer}>
+            <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search hikes by name, location, difficulty..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              clearButtonMode="while-editing"
+            />
             {searchQuery ? (
-                <>
-                    <Ionicons name="search-outline" size={64} color="#999" />
-                    <Text style={styles.emptyTitle}>No Matching Hikes</Text>
-                    <Text style={styles.emptyText}>
-                        No hikes found matching "{searchQuery}"
-                    </Text>
-                    <TouchableOpacity style={styles.clearSearchButton} onPress={clearSearch}>
-                        <Text style={styles.clearSearchText}>Clear Search</Text>
-                    </TouchableOpacity>
-                    </>
-                ) : (
-                    <>
-                    <Ionicons name="trail-sign-outline" size={64} color="#999" />
-                    <Text style={styles.emptyTitle}>No Hikes Yet</Text>
-                    <Text style={styles.emptyText}>
-                        Start by adding your first hike using the "Add Hike" tab!
-                    </Text>
-                </>
-            )}
+              <TouchableOpacity onPress={clearSearch} style={styles.clearButton}>
+                <Ionicons name="close-circle" size={20} color="#666" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
         </View>
-      ) : (
-        <ScrollView 
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-        >
-          <View style={styles.hikesContainer}>
-            {filteredHikes.map((hike) => (
-              <View key={hike.id} style={styles.hikeCard}>
-                {/* Main Hike Image */}
-                {hike.photos && hike.photos.length > 0 ? (
-                  <View style={styles.mainImageContainer}>
-                    <Image 
-                      source={{ uri: hike.photos[0] }} 
-                      style={styles.mainHikeImage}
-                      resizeMode="cover"
-                    />
-                  </View>
-                ) : (
-                  <View style={styles.noImageContainer}>
-                    <Ionicons name="image-outline" size={40} color="#999" />
-                    <Text style={styles.noImageText}>No Image</Text>
-                  </View>
-                )}
+      </View>
 
-                {/* Content Section */}
-                <View style={styles.hikeContent}>
-                  {/* Header with title and actions */}
-                  <View style={styles.hikeHeader}>
-                    <View style={styles.hikeTitleSection}>
-                      <Text style={styles.hikeName}>{hike.name}</Text>
-                      <View style={styles.locationContainer}>
-                        <Ionicons name="location-outline" size={14} color="#666" />
-                        <Text style={styles.hikeLocation}>{hike.location}</Text>
-                      </View>
+      {/* White Background Section for Card List */}
+      <View style={styles.whiteBackground}>
+        {filteredHikes.length === 0 ? (
+          <View style={styles.emptyState}>
+              {searchQuery ? (
+                  <>
+                      <Ionicons name="search-outline" size={64} color="#999" />
+                      <Text style={styles.emptyTitle}>No Matching Hikes</Text>
+                      <Text style={styles.emptyText}>
+                          No hikes found matching "{searchQuery}"
+                      </Text>
+                      <TouchableOpacity style={styles.clearSearchButton} onPress={clearSearch}>
+                          <Text style={styles.clearSearchText}>Clear Search</Text>
+                      </TouchableOpacity>
+                      </>
+                  ) : (
+                      <>
+                      <Ionicons name="trail-sign-outline" size={64} color="#999" />
+                      <Text style={styles.emptyTitle}>No Hikes Yet</Text>
+                      <Text style={styles.emptyText}>
+                          Start by adding your first hike using the "Add Hike" tab!
+                      </Text>
+                  </>
+              )}
+          </View>
+        ) : (
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
+          >
+            <View style={styles.hikesContainer}>
+              {filteredHikes.map((hike) => (
+                <View key={hike.id} style={styles.hikeCard}>
+                  {/* Main Hike Image */}
+                  {hike.photos && hike.photos.length > 0 ? (
+                    <View style={styles.mainImageContainer}>
+                      <Image 
+                        source={{ uri: hike.photos[0] }} 
+                        style={styles.mainHikeImage}
+                        resizeMode="cover"
+                      />
                     </View>
-                    <View style={styles.actionButtons}>
-                      {/* Map button - only show if hike has coordinates */}
-                      {hike.locationCoords && (
+                  ) : (
+                    <View style={styles.noImageContainer}>
+                      <Ionicons name="image-outline" size={40} color="#999" />
+                      <Text style={styles.noImageText}>No Image</Text>
+                    </View>
+                  )}
+
+                  {/* Content Section */}
+                  <View style={styles.hikeContent}>
+                    {/* Header with title and actions */}
+                    <View style={styles.hikeHeader}>
+                      <View style={styles.hikeTitleSection}>
+                        <Text style={styles.hikeName}>{hike.name}</Text>
+                        <View style={styles.locationContainer}>
+                          <Ionicons name="location-outline" size={14} color="#666" />
+                          <Text style={styles.hikeLocation}>{hike.location}</Text>
+                        </View>
+                      </View>
+                      <View style={styles.actionButtons}>
+                        {/* Map button - only show if hike has coordinates */}
+                        {hike.locationCoords && (
+                          <TouchableOpacity 
+                            style={styles.mapButton}
+                            onPress={() => handleMapPress(hike)}
+                          >
+                            <Ionicons name="map-outline" size={20} color="#2196F3" />
+                          </TouchableOpacity>
+                        )}
                         <TouchableOpacity 
-                          style={styles.mapButton}
-                          onPress={() => handleMapPress(hike)}
+                          style={styles.editButton}
+                          onPress={() => handleEditHike(hike)}
                         >
-                          <Ionicons name="map-outline" size={20} color="#2196F3" />
+                          <Ionicons name="create-outline" size={20} color="#1E6A65" />
                         </TouchableOpacity>
-                      )}
-                      <TouchableOpacity 
-                        style={styles.editButton}
-                        onPress={() => handleEditHike(hike)}
-                      >
-                        <Ionicons name="create-outline" size={20} color="#1E6A65" />
-                      </TouchableOpacity>
-                      <TouchableOpacity 
-                        style={styles.deleteButton}
-                        onPress={() => handleDeleteHike(hike.id, hike.name)}
-                      >
-                        <Ionicons name="trash-outline" size={20} color="#f44336" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  {/* Details Section */}
-                  <TouchableOpacity 
-                    style={styles.hikeDetails}
-                    onPress={() => {
-                      Alert.alert(
-                        hike.name,
-                        `Location: ${hike.location}\nDate: ${formatDate(hike.date)}\nLength: ${hike.length}km\nDifficulty: ${hike.difficulty}\nParking: ${hike.parking}\n${hike.description ? `Description: ${hike.description}\n` : ''}${hike.weather ? `Weather: ${hike.weather}` : ''}`
-                      );
-                    }}
-                  >
-                    {/* Stats Row */}
-                    <View style={styles.statsRow}>
-                      <View style={styles.statItem}>
-                        <Ionicons name="calendar-outline" size={16} color="#666" />
-                        <Text style={styles.statText}>{formatDate(hike.date)}</Text>
-                      </View>
-                      <View style={styles.statItem}>
-                        <Ionicons name="trail-sign-outline" size={16} color="#666" />
-                        <Text style={styles.statText}>{hike.length} km</Text>
-                      </View>
-                      <View style={styles.statItem}>
-                        <Ionicons name="flash-outline" size={16} color="#666" />
-                        <Text style={[styles.statText, styles[`difficulty${hike.difficulty}`]]}>
-                          {hike.difficulty}
-                        </Text>
-                      </View>
-                      <View style={styles.statItem}>
-                        <Ionicons name="car-outline" size={16} color="#666" />
-                        <Text style={styles.statText}>{hike.parking}</Text>
+                        <TouchableOpacity 
+                          style={styles.deleteButton}
+                          onPress={() => handleDeleteHike(hike.id, hike.name)}
+                        >
+                          <Ionicons name="trash-outline" size={20} color="#f44336" />
+                        </TouchableOpacity>
                       </View>
                     </View>
 
-                    {/* Additional Photos Section */}
-                    {hike.photos && hike.photos.length > 1 && (
-                      <View style={styles.additionalPhotosSection}>
-                        <View style={styles.photosHeader}>
-                          <Text style={styles.photosLabel}>
-                            More Photos ({hike.photos.length - 1})
+                    {/* Details Section */}
+                    <TouchableOpacity 
+                      style={styles.hikeDetails}
+                      onPress={() => {
+                        Alert.alert(
+                          hike.name,
+                          `Location: ${hike.location}\nDate: ${formatDate(hike.date)}\nLength: ${hike.length}km\nDifficulty: ${hike.difficulty}\nParking: ${hike.parking}\n${hike.description ? `Description: ${hike.description}\n` : ''}${hike.weather ? `Weather: ${hike.weather}` : ''}`
+                        );
+                      }}
+                    >
+                      {/* Stats Row */}
+                      <View style={styles.statsRow}>
+                        <View style={styles.statItem}>
+                          <Ionicons name="calendar-outline" size={16} color="#666" />
+                          <Text style={styles.statText}>{formatDate(hike.date)}</Text>
+                        </View>
+                        <View style={styles.statItem}>
+                          <Ionicons name="trail-sign-outline" size={16} color="#666" />
+                          <Text style={styles.statText}>{hike.length} km</Text>
+                        </View>
+                        <View style={styles.statItem}>
+                          <Ionicons name="flash-outline" size={16} color="#666" />
+                          <Text style={[styles.statText, styles[`difficulty${hike.difficulty}`]]}>
+                            {hike.difficulty}
                           </Text>
                         </View>
-                        <ScrollView 
-                          horizontal 
-                          showsHorizontalScrollIndicator={false}
-                          style={styles.photosScrollView}
-                        >
-                          {hike.photos.slice(1).map((photo, index) => (
-                            <TouchableOpacity 
-                              key={index} 
-                              style={styles.photoContainer}
-                              onPress={() => handlePhotoPress(photo, hike.name)}
-                            >
-                              <Image 
-                                source={{ uri: photo }} 
-                                style={styles.additionalPhoto} 
-                              />
-                            </TouchableOpacity>
-                          ))}
-                        </ScrollView>
+                        <View style={styles.statItem}>
+                          <Ionicons name="car-outline" size={16} color="#666" />
+                          <Text style={styles.statText}>{hike.parking}</Text>
+                        </View>
                       </View>
-                    )}
 
-                    {/* Description */}
-                    {hike.description ? (
-                      <View style={styles.descriptionSection}>
-                        <Text style={styles.descriptionText} numberOfLines={2}>
-                          {hike.description}
-                        </Text>
-                      </View>
-                    ) : null}
+                      {/* Additional Photos Section */}
+                      {hike.photos && hike.photos.length > 1 && (
+                        <View style={styles.additionalPhotosSection}>
+                          <View style={styles.photosHeader}>
+                            <Text style={styles.photosLabel}>
+                              More Photos ({hike.photos.length - 1})
+                            </Text>
+                          </View>
+                          <ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.photosScrollView}
+                          >
+                            {hike.photos.slice(1).map((photo, index) => (
+                              <TouchableOpacity 
+                                key={index} 
+                                style={styles.photoContainer}
+                                onPress={() => handlePhotoPress(photo, hike.name)}
+                              >
+                                <Image 
+                                  source={{ uri: photo }} 
+                                  style={styles.additionalPhoto} 
+                                />
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
 
-                    {/* Weather */}
-                    {hike.weather ? (
-                      <View style={styles.weatherSection}>
-                        <Text style={styles.weatherIcon}>🌤️</Text>
-                        <Text style={styles.weatherText}>{hike.weather}</Text>
-                      </View>
-                    ) : null}
-                  </TouchableOpacity>
+                      {/* Description */}
+                      {hike.description ? (
+                        <View style={styles.descriptionSection}>
+                          <Text style={styles.descriptionText} numberOfLines={2}>
+                            {hike.description}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {/* Weather */}
+                      {hike.weather ? (
+                        <View style={styles.weatherSection}>
+                          <Text style={styles.weatherIcon}>🌤️</Text>
+                          <Text style={styles.weatherText}>{hike.weather}</Text>
+                        </View>
+                      ) : null}
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
-            ))}
-          </View>
-        </ScrollView>
-      )}
+              ))}
+            </View>
+          </ScrollView>
+        )}
+      </View>
     </View>
   );
 }
@@ -377,26 +383,30 @@ export default function HikeListScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F5F6',
+    backgroundColor: '#1E6A65',
+  },
+  // Green Background Section
+  greenBackground: {
+    backgroundColor: '#1E6A65',
+  },
+  // White Background Section for Card List
+  whiteBackground: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   // Title Bar
   titleBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#ffffff',
-    paddingTop: 40,
-    paddingVertical: 16,
+    backgroundColor: '#ffffffff',
+    paddingTop: Platform.OS === 'ios' ? 10 : 16,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#e8e8e8',
-    zIndex: 10,
+    borderBottomColor: '#f3f3f3ff',
   },
   titleText: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1a1a1a',
+    color: '#000000ff',
     textAlign: 'center',
   },
   subtitleText: {
@@ -407,12 +417,10 @@ const styles = StyleSheet.create({
   },
   // Search Container
   searchContainer: {
-    position: 'absolute',
-    top: 120,
-    left: 0,
-    right: 0,
     paddingHorizontal: 16,
-    zIndex: 10,
+    paddingTop: 16,
+    paddingBottom: 24,
+    backgroundColor: '#ffffffff',
   },
   searchInputContainer: {
     flexDirection: 'row',
@@ -438,16 +446,18 @@ const styles = StyleSheet.create({
   // Scroll View
   scrollView: {
     flex: 1,
-    marginTop: 170,
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     padding: 16,
     paddingBottom: 80,
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
   },
   loadingText: {
     fontSize: 16,
@@ -460,8 +470,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 40,
-    backgroundColor: '#f8f9fa',
-    marginTop: 170,
+    backgroundColor: '#FFFFFF',
   },
   emptyTitle: {
     fontSize: 22,
@@ -491,13 +500,19 @@ const styles = StyleSheet.create({
   // Hike Card Styles
   hikesContainer: {
     gap: 16,
+    backgroundColor: '#FFFFFF',
   },
   hikeCard: {
-    backgroundColor: '#ffffffff',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e2e2e2ff',
+    borderColor: '#f0f0f0',
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 12,
+    elevation: 2,
   },
   // Main Image Section
   mainImageContainer: {
