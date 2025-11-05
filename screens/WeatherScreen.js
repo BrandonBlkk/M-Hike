@@ -482,23 +482,129 @@ export default function WeatherScreen() {
     </TouchableOpacity>
   );
 
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#80BDE7" />
-        <View style={styles.header}>
-          <Text style={styles.time}>{formatTime(currentTime)}</Text>
-          <View style={styles.locationContainer}>
-            <Text style={styles.locationText}>Loading location...</Text>
-          </View>
-          <Text style={styles.date}>{formatDate(currentTime)}</Text>
+  // Skeleton Components
+  const SkeletonHeader = () => (
+    <View style={styles.header}>
+      <View style={[styles.skeleton, styles.skeletonTime]} />
+      <View style={styles.locationContainer}>
+        <View style={[styles.skeleton, styles.skeletonLocationText]} />
+        <View style={[styles.skeleton, styles.skeletonSearchButton]} />
+      </View>
+      <View style={[styles.skeleton, styles.skeletonDate]} />
+    </View>
+  );
+
+  const SkeletonCurrentWeather = () => (
+    <View style={styles.currentWeather}>
+      <View style={styles.currentWeatherMain}>
+        <View style={styles.temperatureContainer}>
+          <View style={[styles.skeleton, styles.skeletonCurrentTemp]} />
+          <View style={[styles.skeleton, styles.skeletonFeelsLike]} />
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text style={styles.loadingText}>Loading weather data...</Text>
+        <View style={styles.weatherIconContainer}>
+          <View style={[styles.skeleton, styles.skeletonWeatherIcon]} />
+          <View style={[styles.skeleton, styles.skeletonWeatherDescription]} />
         </View>
       </View>
-    );
+      
+      <View style={styles.weatherDetails}>
+        {[1, 2, 3].map((item) => (
+          <View key={item} style={styles.detailItem}>
+            <View style={[styles.skeleton, styles.skeletonDetailIcon]} />
+            <View style={[styles.skeleton, styles.skeletonDetailValue]} />
+            <View style={[styles.skeleton, styles.skeletonDetailLabel]} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+
+  const SkeletonHourlyForecast = () => (
+    <View style={styles.hourlySection}>
+      <View style={[styles.skeleton, styles.skeletonSectionTitle]} />
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.hourlyScrollContent}
+      >
+        {[1, 2, 3, 4, 5, 6].map((item) => (
+          <View key={item} style={styles.hourlyItem}>
+            <View style={[styles.skeleton, styles.skeletonHourlyTime]} />
+            <View style={[styles.skeleton, styles.skeletonHourlyIcon]} />
+            <View style={[styles.skeleton, styles.skeletonHourlyTemp]} />
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
+  const SkeletonDailyForecast = () => (
+    <View style={styles.forecastSection}>
+      <View style={[styles.skeleton, styles.skeletonSectionTitle]} />
+      <View style={styles.forecastList}>
+        {[1, 2, 3, 4, 5, 6].map((item) => (
+         <View key={item} style={styles.forecastDay}>
+  <View style={[styles.skeleton, styles.skeletonDayName]} />
+  <View style={styles.skeletonIconContainer}>
+    <View style={[styles.skeleton, styles.skeletonForecastIcon]} />
+  </View>
+  <View style={[styles.skeleton, styles.skeletonTempRange]} />
+</View>
+        ))}
+      </View>
+    </View>
+  );
+
+  const SkeletonAdditionalInfo = () => (
+    <View style={styles.infoSection}>
+      <View style={[styles.skeleton, styles.skeletonSectionTitle]} />
+      <View style={styles.infoRow}>
+        {[1, 2, 3].map((item) => (
+          <View key={item} style={styles.infoItem}>
+            <View style={[styles.skeleton, styles.skeletonInfoIcon]} />
+            <View style={[styles.skeleton, styles.skeletonInfoValue]} />
+            <View style={[styles.skeleton, styles.skeletonInfoLabel]} />
+            <View style={[styles.skeleton, styles.skeletonInfoDescription]} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+
+  const SkeletonWeatherTips = () => (
+    <View style={styles.tipsContainer}>
+      <View style={[styles.skeleton, styles.skeletonSectionTitle]} />
+      <View style={styles.tipsList}>
+        {[1, 2, 3].map((item) => (
+          <View key={item} style={styles.tipItem}>
+            <View style={[styles.skeleton, styles.skeletonTipIcon]} />
+            <View style={[styles.skeleton, styles.skeletonTipText]} />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+
+  const SkeletonWeatherScreen = () => (
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#80BDE7" />
+      <SkeletonHeader />
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <SkeletonCurrentWeather />
+        <SkeletonHourlyForecast />
+        <SkeletonDailyForecast />
+        <SkeletonAdditionalInfo />
+        <SkeletonWeatherTips />
+      </ScrollView>
+    </View>
+  );
+
+  if (loading && !refreshing) {
+    return <SkeletonWeatherScreen />;
   }
 
   if (error) {
@@ -563,131 +669,144 @@ export default function WeatherScreen() {
           />
         }
       >
-        {/* Current Weather */}
-        {weatherData.list[0] && (
-          <View style={styles.currentWeather}>
-            <View style={styles.currentWeatherMain}>
-              <View style={styles.temperatureContainer}>
-                <Text style={styles.currentTemp}>
-                  {Math.round(weatherData.list[0].main.temp)}°
-                </Text>
-                <Text style={styles.feelsLike}>
-                  Feels like {Math.round(weatherData.list[0].main.feels_like)}°
-                </Text>
-              </View>
-              <View style={styles.weatherIconContainer}>
-                <Ionicons 
-                  name={getWeatherIcon(weatherData.list[0].weather[0].main)} 
-                  size={80} 
-                  color="#FFFFFF" 
-                />
-                <Text style={styles.weatherDescription}>
-                  {weatherData.list[0].weather[0].description}
-                </Text>
-              </View>
-            </View>
-            
-            <View style={styles.weatherDetails}>
-              <View style={styles.detailItem}>
-                <Ionicons name="water-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.detailValue}>{weatherData.list[0].main.humidity}%</Text>
-                <Text style={styles.detailLabel}>Humidity</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Ionicons name="speedometer-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.detailValue}>{weatherData.list[0].main.pressure}</Text>
-                <Text style={styles.detailLabel}>Pressure</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Ionicons name="flag-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.detailValue}>
-                  {Math.round(weatherData.list[0].wind.speed * 3.6)}
-                </Text>
-                <Text style={styles.detailLabel}>Wind km/h</Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Hourly Forecast */}
-        <View style={styles.hourlySection}>
-          <Text style={styles.sectionTitle}>Today</Text>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.hourlyScrollContent}
-          >
-            {weatherData.list.slice(0, 6).map((hour, index) => (
-              <View key={index} style={styles.hourlyItem}>
-                <Text style={styles.hourlyTime}>
-                  {index === 0 ? 'Now' : new Date(hour.dt * 1000).getHours() + ':00'}
-                </Text>
-                <Ionicons 
-                  name={getWeatherIcon(hour.weather[0].main)} 
-                  size={32} 
-                  color="#FFFFFF" 
-                />
-                <Text style={styles.hourlyTemp}>{Math.round(hour.main.temp)}°</Text>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* 6-Day Forecast */}
-        <View style={styles.forecastSection}>
-          <Text style={styles.sectionTitle}>6-Day Forecast</Text>
-          <View style={styles.forecastList}>
-            {dailyForecasts.map((dayData, index) => {
-              const dailyForecast = getDailyForecast(dayData);
-              return (
-                <View key={index} style={styles.forecastDay}>
-                  <Text style={styles.forecastDayName}>
-                    {getDayName(dailyForecast.date)}
-                  </Text>
-                  <View style={styles.forecastWeatherIcon}>
+        {/* Show skeleton during refresh */}
+        {refreshing ? (
+          <>
+            <SkeletonCurrentWeather />
+            <SkeletonHourlyForecast />
+            <SkeletonDailyForecast />
+            <SkeletonAdditionalInfo />
+            <SkeletonWeatherTips />
+          </>
+        ) : (
+          <>
+            {/* Current Weather */}
+            {weatherData.list[0] && (
+              <View style={styles.currentWeather}>
+                <View style={styles.currentWeatherMain}>
+                  <View style={styles.temperatureContainer}>
+                    <Text style={styles.currentTemp}>
+                      {Math.round(weatherData.list[0].main.temp)}°
+                    </Text>
+                    <Text style={styles.feelsLike}>
+                      Feels like {Math.round(weatherData.list[0].main.feels_like)}°
+                    </Text>
+                  </View>
+                  <View style={styles.weatherIconContainer}>
                     <Ionicons 
-                      name={getWeatherIcon(dailyForecast.mainWeather)} 
-                      size={24} 
+                      name={getWeatherIcon(weatherData.list[0].weather[0].main)} 
+                      size={80} 
                       color="#FFFFFF" 
                     />
-                  </View>
-                  <View style={styles.forecastTempRange}>
-                    <Text style={styles.tempMax}>{Math.round(dailyForecast.maxTemp)}°</Text>
-                    <Text style={styles.tempMin}>{Math.round(dailyForecast.minTemp)}°</Text>
+                    <Text style={styles.weatherDescription}>
+                      {weatherData.list[0].weather[0].description}
+                    </Text>
                   </View>
                 </View>
-              );
-            })}
-          </View>
-        </View>
-
-        {/* Additional Info */}
-        <View style={styles.infoSection}>
-          <Text style={styles.sectionTitle}>Activity Insights</Text>
-          <View style={styles.infoRow}>
-            {additionalInfo.map((info, index) => (
-              <View key={index} style={styles.infoItem}>
-                <Ionicons name={info.icon} size={24} color="#FFFFFF" />
-                <Text style={styles.infoValue}>{info.value}</Text>
-                <Text style={styles.infoLabel}>{info.label}</Text>
-                <Text style={styles.infoDescription}>{info.description}</Text>
+                
+                <View style={styles.weatherDetails}>
+                  <View style={styles.detailItem}>
+                    <Ionicons name="water-outline" size={20} color="#FFFFFF" />
+                    <Text style={styles.detailValue}>{weatherData.list[0].main.humidity}%</Text>
+                    <Text style={styles.detailLabel}>Humidity</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Ionicons name="speedometer-outline" size={20} color="#FFFFFF" />
+                    <Text style={styles.detailValue}>{weatherData.list[0].main.pressure}</Text>
+                    <Text style={styles.detailLabel}>Pressure</Text>
+                  </View>
+                  <View style={styles.detailItem}>
+                    <Ionicons name="flag-outline" size={20} color="#FFFFFF" />
+                    <Text style={styles.detailValue}>
+                      {Math.round(weatherData.list[0].wind.speed * 3.6)}
+                    </Text>
+                    <Text style={styles.detailLabel}>Wind km/h</Text>
+                  </View>
+                </View>
               </View>
-            ))}
-          </View>
-        </View>
+            )}
 
-        {/* Weather Tips */}
-        <View style={styles.tipsContainer}>
-          <Text style={styles.sectionTitle}>Weather Tips</Text>
-          <View style={styles.tipsList}>
-            {weatherTips.map((tip, index) => (
-              <View key={index} style={styles.tipItem}>
-                <Ionicons name={tip.icon} size={20} color={tip.color} />
-                <Text style={styles.tipText}>{tip.text}</Text>
+            {/* Hourly Forecast */}
+            <View style={styles.hourlySection}>
+              <Text style={styles.sectionTitle}>Today</Text>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.hourlyScrollContent}
+              >
+                {weatherData.list.slice(0, 6).map((hour, index) => (
+                  <View key={index} style={styles.hourlyItem}>
+                    <Text style={styles.hourlyTime}>
+                      {index === 0 ? 'Now' : new Date(hour.dt * 1000).getHours() + ':00'}
+                    </Text>
+                    <Ionicons 
+                      name={getWeatherIcon(hour.weather[0].main)} 
+                      size={32} 
+                      color="#FFFFFF" 
+                    />
+                    <Text style={styles.hourlyTemp}>{Math.round(hour.main.temp)}°</Text>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* 6-Day Forecast */}
+            <View style={styles.forecastSection}>
+              <Text style={styles.sectionTitle}>6-Day Forecast</Text>
+              <View style={styles.forecastList}>
+                {dailyForecasts.map((dayData, index) => {
+                  const dailyForecast = getDailyForecast(dayData);
+                  return (
+                    <View key={index} style={styles.forecastDay}>
+                      <Text style={styles.forecastDayName}>
+                        {getDayName(dailyForecast.date)}
+                      </Text>
+                      <View style={styles.forecastWeatherIcon}>
+                        <Ionicons 
+                          name={getWeatherIcon(dailyForecast.mainWeather)} 
+                          size={24} 
+                          color="#FFFFFF" 
+                        />
+                      </View>
+                      <View style={styles.forecastTempRange}>
+                        <Text style={styles.tempMax}>{Math.round(dailyForecast.maxTemp)}°</Text>
+                        <Text style={styles.tempMin}>{Math.round(dailyForecast.minTemp)}°</Text>
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
-            ))}
-          </View>
-        </View>
+            </View>
+
+            {/* Additional Info */}
+            <View style={styles.infoSection}>
+              <Text style={styles.sectionTitle}>Activity Insights</Text>
+              <View style={styles.infoRow}>
+                {additionalInfo.map((info, index) => (
+                  <View key={index} style={styles.infoItem}>
+                    <Ionicons name={info.icon} size={24} color="#FFFFFF" />
+                    <Text style={styles.infoValue}>{info.value}</Text>
+                    <Text style={styles.infoLabel}>{info.label}</Text>
+                    <Text style={styles.infoDescription}>{info.description}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            {/* Weather Tips */}
+            <View style={styles.tipsContainer}>
+              <Text style={styles.sectionTitle}>Weather Tips</Text>
+              <View style={styles.tipsList}>
+                {weatherTips.map((tip, index) => (
+                  <View key={index} style={styles.tipItem}>
+                    <Ionicons name={tip.icon} size={20} color={tip.color} />
+                    <Text style={styles.tipText}>{tip.text}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
 
       {/* Search Modal */}
@@ -937,6 +1056,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   // Forecast Section
+  skeletonIconContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   forecastSection: {
     marginBottom: 20,
   },
@@ -953,6 +1077,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    gap: 16,
   },
   forecastDayName: {
     fontSize: 16,
@@ -1127,5 +1252,126 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#80BDE7',
     marginLeft: 8,
+  },
+  // Skeleton Styles
+  skeleton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  skeletonTime: {
+    width: 120,
+    height: 32,
+    marginBottom: 4,
+  },
+  skeletonLocationText: {
+    width: 180,
+    height: 18,
+    marginRight: 8,
+  },
+  skeletonSearchButton: {
+    width: 28,
+    height: 28,
+  },
+  skeletonDate: {
+    width: 140,
+    height: 14,
+  },
+  skeletonCurrentTemp: {
+    width: 160,
+    height: 72,
+    marginBottom: 8,
+  },
+  skeletonFeelsLike: {
+    width: 120,
+    height: 16,
+  },
+  skeletonWeatherIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  skeletonWeatherDescription: {
+    width: 100,
+    height: 16,
+    marginTop: 8,
+  },
+  skeletonDetailIcon: {
+    width: 20,
+    height: 20,
+  },
+  skeletonDetailValue: {
+    width: 40,
+    height: 18,
+    marginTop: 4,
+  },
+  skeletonDetailLabel: {
+    width: 60,
+    height: 12,
+    marginTop: 6,
+  },
+  skeletonSectionTitle: {
+    width: 120,
+    height: 18,
+    marginHorizontal: 20,
+    marginBottom: 15,
+  },
+  skeletonHourlyTime: {
+    width: 40,
+    height: 14,
+    marginBottom: 8,
+  },
+  skeletonHourlyIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  skeletonHourlyTemp: {
+    width: 30,
+    height: 18,
+    marginTop: 8,
+  },
+  skeletonDayName: {
+    width: 60,
+    height: 16,
+    flex: 1,
+  },
+  skeletonForecastIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    flex: 1,
+  },
+  skeletonTempRange: {
+    width: 80,
+    height: 16,
+  },
+  skeletonInfoIcon: {
+    width: 24,
+    height: 24,
+  },
+  skeletonInfoValue: {
+    width: 50,
+    height: 18,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  skeletonInfoLabel: {
+    width: 40,
+    height: 12,
+    marginBottom: 4,
+  },
+  skeletonInfoDescription: {
+    width: 70,
+    height: 10,
+  },
+  skeletonTipIcon: {
+    width: 20,
+    height: 20,
+  },
+  skeletonTipText: {
+    flex: 1,
+    height: 14,
+    marginLeft: 12,
   },
 });
