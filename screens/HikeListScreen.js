@@ -9,7 +9,10 @@ import {
   RefreshControl,
   TextInput,
   Image,
-  Platform
+  Platform,
+  Modal,
+  Dimensions,
+  StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
@@ -23,6 +26,11 @@ export default function HikeListScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [photoModalVisible, setPhotoModalVisible] = useState(false);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [selectedHikeName, setSelectedHikeName] = useState('');
+  const [selectedHikePhotos, setSelectedHikePhotos] = useState([]);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
 
   const loadHikes = async () => {
     try {
@@ -136,29 +144,48 @@ export default function HikeListScreen({ navigation }) {
     setSearchQuery('');
   };
 
-  const handlePhotoPress = (photoUri, hikeName) => {
-    Alert.alert(
-      `${hikeName} - Photo`,
-      "View photo in full screen",
-      [
-        {
-          text: "View",
-          onPress: () => {
-            // You can implement full-screen photo view here
-            // For now, we'll just show a larger preview in an alert
-            Alert.alert(
-              "Photo Preview",
-              "Full screen photo view would be implemented here",
-              [{ text: "OK" }]
-            );
-          }
-        },
-        {
-          text: "Cancel",
-          style: "cancel"
-        }
-      ]
-    );
+  const handlePhotoPress = (photoUri, hikeName, hikePhotos, index) => {
+    setSelectedPhoto(photoUri);
+    setSelectedHikeName(hikeName);
+    setSelectedHikePhotos(hikePhotos);
+    setCurrentPhotoIndex(index);
+    setPhotoModalVisible(true);
+  };
+
+  const closePhotoModal = () => {
+    setPhotoModalVisible(false);
+    setSelectedPhoto(null);
+    setSelectedHikeName('');
+    setSelectedHikePhotos([]);
+    setCurrentPhotoIndex(0);
+  };
+
+  const goToNextPhoto = () => {
+    if (selectedHikePhotos.length > 0) {
+      const nextIndex = (currentPhotoIndex + 1) % selectedHikePhotos.length;
+      setCurrentPhotoIndex(nextIndex);
+      setSelectedPhoto(selectedHikePhotos[nextIndex]);
+    }
+  };
+
+  const goToPreviousPhoto = () => {
+    if (selectedHikePhotos.length > 0) {
+      const prevIndex = (currentPhotoIndex - 1 + selectedHikePhotos.length) % selectedHikePhotos.length;
+      setCurrentPhotoIndex(prevIndex);
+      setSelectedPhoto(selectedHikePhotos[prevIndex]);
+    }
+  };
+
+  // Handle swipe gestures
+  const handleSwipe = (event) => {
+    const { nativeEvent } = event;
+    if (nativeEvent.pageX - nativeEvent.locationX < 50) {
+      // Swipe left - next photo
+      goToNextPhoto();
+    } else if (nativeEvent.pageX - nativeEvent.locationX > Dimensions.get('window').width - 50) {
+      // Swipe right - previous photo
+      goToPreviousPhoto();
+    }
   };
 
   // Get completion status badge
@@ -260,7 +287,10 @@ export default function HikeListScreen({ navigation }) {
                 <View key={hike.id} style={styles.hikeCard}>
                   {/* Main Hike Image */}
                   {hike.photos && hike.photos.length > 0 ? (
-                    <View style={styles.mainImageContainer}>
+                    <TouchableOpacity 
+                      style={styles.mainImageContainer}
+                      onPress={() => handlePhotoPress(hike.photos[0], hike.name, hike.photos, 0)}
+                    >
                       <Image 
                         source={{ uri: hike.photos[0] }} 
                         style={styles.mainHikeImage}
@@ -270,7 +300,7 @@ export default function HikeListScreen({ navigation }) {
                       <View style={styles.imageBadge}>
                         {getCompletionBadge(hike)}
                       </View>
-                    </View>
+                    </TouchableOpacity>
                   ) : (
                     <View style={styles.noImageContainer}>
                       <Ionicons name="image-outline" size={40} color="#999" />
@@ -385,7 +415,7 @@ export default function HikeListScreen({ navigation }) {
                               <TouchableOpacity 
                                 key={index} 
                                 style={styles.photoContainer}
-                                onPress={() => handlePhotoPress(photo, hike.name)}
+                                onPress={() => handlePhotoPress(photo, hike.name, hike.photos, index + 1)}
                               >
                                 <Image 
                                   source={{ uri: photo }} 
@@ -421,9 +451,94 @@ export default function HikeListScreen({ navigation }) {
           </ScrollView>
         )}
       </View>
+
+      {/* Full Screen Photo Modal */}
+      <Modal
+        visible={photoModalVisible}
+        transparent={true}
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={closePhotoModal}
+      >
+        <View style={styles.modalContainer}>
+          <StatusBar backgroundColor="rgba(0,0,0,0.9)" barStyle="light-content" />
+          
+          {/* Header with hike name, photo counter and close button */}
+          <View style={styles.modalHeader}>
+            <View style={styles.modalTitleContainer}>
+              <Text style={styles.modalHikeName} numberOfLines={1}>
+                {selectedHikeName}
+              </Text>
+              {selectedHikePhotos.length > 1 && (
+                <Text style={styles.photoCounter}>
+                  {currentPhotoIndex + 1} / {selectedHikePhotos.length}
+                </Text>
+              )}
+            </View>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={closePhotoModal}
+            >
+              <Ionicons name="close" size={28} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Photo Container with swipe gestures */}
+          <View style={styles.photoContainerModal}>
+            {selectedPhoto && (
+              <TouchableOpacity 
+                style={styles.fullScreenPhotoContainer}
+                activeOpacity={1}
+                onPress={handleSwipe}
+              >
+                <Image 
+                  source={{ uri: selectedPhoto }} 
+                  style={styles.fullScreenPhoto}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            )}
+            
+            {/* Navigation Arrows */}
+            {selectedHikePhotos.length > 1 && (
+              <>
+                <TouchableOpacity 
+                  style={[styles.navButton, styles.prevButton]}
+                  onPress={goToPreviousPhoto}
+                >
+                  <Ionicons name="chevron-back" size={32} color="#fff" />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.navButton, styles.nextButton]}
+                  onPress={goToNextPhoto}
+                >
+                  <Ionicons name="chevron-forward" size={32} color="#fff" />
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+
+          {/* Footer with dots indicator */}
+          {selectedHikePhotos.length > 1 && (
+            <View style={styles.dotsContainer}>
+              {selectedHikePhotos.map((_, index) => (
+                <View 
+                  key={index} 
+                  style={[
+                    styles.dot,
+                    index === currentPhotoIndex && styles.activeDot
+                  ]} 
+                />
+              ))}
+            </View>
+          )}
+        </View>
+      </Modal>
     </View>
   );
 }
+
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   container: {
@@ -767,5 +882,92 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     fontStyle: 'italic',
+  },
+  // Full Screen Photo Modal Styles
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'space-between',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  modalTitleContainer: {
+    flex: 1,
+    marginRight: 20,
+  },
+  modalHikeName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  photoCounter: {
+    fontSize: 14,
+    color: '#fff',
+    opacity: 0.8,
+  },
+  closeButton: {
+    padding: 4,
+  },
+  photoContainerModal: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  fullScreenPhotoContainer: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenPhoto: {
+    width: screenWidth,
+    height: screenHeight * 0.7,
+  },
+  // Navigation buttons
+  navButton: {
+    position: 'absolute',
+    top: '50%',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    transform: [{ translateY: -25 }],
+  },
+  prevButton: {
+    left: 20,
+  },
+  nextButton: {
+    right: 20,
+  },
+  // Dots indicator
+  dotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 40,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+    marginHorizontal: 4,
+  },
+  activeDot: {
+    backgroundColor: '#fff',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
 });

@@ -45,6 +45,17 @@ export default function AddHikeScreen({ navigation }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
+  // Use refs to maintain input focus
+  const inputRefs = {
+    name: React.useRef(null),
+    location: React.useRef(null),
+    length: React.useRef(null),
+    description: React.useRef(null),
+    notes: React.useRef(null),
+    weather: React.useRef(null),
+  };
 
   useEffect(() => {
     (async () => {
@@ -92,73 +103,156 @@ export default function AddHikeScreen({ navigation }) {
     setErrors({});
   };
 
+  const validateField = (field, value) => {
+    let fieldError = null;
+    
+    switch (field) {
+      case "name":
+        if (!value.trim()) fieldError = "Name of hike is required";
+        break;
+      case "location":
+        if (!value.trim()) fieldError = "Location is required";
+        break;
+      case "date":
+        if (!value) fieldError = "Date is required";
+        break;
+      case "parking":
+        if (!value) fieldError = "Parking info is required";
+        break;
+      case "length":
+        if (!value.trim()) fieldError = "Length is required";
+        else if (isNaN(parseFloat(value)) || parseFloat(value) <= 0) 
+          fieldError = "Length must be a valid number";
+        break;
+      case "difficulty":
+        if (!value) fieldError = "Difficulty is required";
+        break;
+      case "completed_date":
+        if (hike.is_completed === 1 && !value) 
+          fieldError = "Completed date is required for completed hikes";
+        break;
+      default:
+        break;
+    }
+
+    return fieldError;
+  };
+
   const handleChange = (field, value) => {
-    setHike({ ...hike, [field]: value });
+    setHike(prevHike => ({
+      ...prevHike,
+      [field]: value
+    }));
+
+    // Real-time error removal
+    if (errors[field]) {
+      const fieldError = validateField(field, value);
+      if (!fieldError) {
+        // Remove error if field is now valid
+        setErrors(prevErrors => {
+          const newErrors = { ...prevErrors };
+          delete newErrors[field];
+          return newErrors;
+        });
+      } else {
+        // Update error message if still invalid but value changed
+        setErrors(prevErrors => ({
+          ...prevErrors,
+          [field]: fieldError
+        }));
+      }
+    }
+  };
+
+  const validateForm = () => {
+    let newErrors = {};
+    
+    // Validate all fields
+    const fieldsToValidate = [
+      { field: "name", value: hike.name },
+      { field: "location", value: hike.location },
+      { field: "date", value: hike.date },
+      { field: "parking", value: hike.parking },
+      { field: "length", value: hike.length },
+      { field: "difficulty", value: hike.difficulty },
+      { field: "completed_date", value: hike.completed_date }
+    ];
+
+    fieldsToValidate.forEach(({ field, value }) => {
+      const error = validateField(field, value);
+      if (error) {
+        newErrors[field] = error;
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
     
-    let newErrors = {};
-    if (!hike.name.trim()) newErrors.name = "Name of hike is required";
-    if (!hike.location.trim()) newErrors.location = "Location is required";
-    if (!hike.date) newErrors.date = "Date is required";
-    if (!hike.parking) newErrors.parking = "Parking info is required";
-    if (!hike.length.trim()) newErrors.length = "Length is required";
-    else if (isNaN(parseFloat(hike.length)) || parseFloat(hike.length) <= 0) 
-      newErrors.length = "Length must be a valid number";
-    if (!hike.difficulty) newErrors.difficulty = "Difficulty is required";
-    if (hike.is_completed === 1 && !hike.completed_date) 
-      newErrors.completed_date = "Completed date is required for completed hikes";
+    if (validateForm()) {
+      setShowConfirmation(true);
+    }
+  };
 
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length === 0) {
-      setIsSubmitting(true);
+  const handleConfirmSave = async () => {
+    setIsSubmitting(true);
+    
+    try {
+      const result = await databaseService.saveHike(hike);
       
-      try {
-        const result = await databaseService.saveHike(hike);
-        
-        if (result.success) {
-          Alert.alert(
-            "Hike Submitted", 
-            "Your hike has been successfully recorded!",
-            [
-              {
-                text: "OK",
-                onPress: () => {
-                  clearAllInputs();
-                  setIsSubmitting(false);
-                  navigation.navigate('HikeList');
-                }
-              }
-            ]
-          );
-        } else {
-          Alert.alert(
-            "Error", 
-            "Failed to save hike. Please try again.",
-            [
-              {
-                text: "OK",
-                onPress: () => setIsSubmitting(false)
-              }
-            ]
-          );
-        }
-      } catch (error) {
+      if (result.success) {
         Alert.alert(
-          "Error", 
-          "An error occurred while saving the hike.",
+          "Hike Submitted", 
+          "Your hike has been successfully recorded!",
           [
             {
               text: "OK",
-              onPress: () => setIsSubmitting(false)
+              onPress: () => {
+                clearAllInputs();
+                setIsSubmitting(false);
+                setShowConfirmation(false);
+                navigation.navigate('HikeList');
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert(
+          "Error", 
+          "Failed to save hike. Please try again.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                setIsSubmitting(false);
+                setShowConfirmation(false);
+              }
             }
           ]
         );
       }
+    } catch (error) {
+      Alert.alert(
+        "Error", 
+        "An error occurred while saving the hike.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              setIsSubmitting(false);
+              setShowConfirmation(false);
+            }
+          }
+        ]
+      );
     }
+  };
+
+  const handleEditDetails = () => {
+    setShowConfirmation(false);
   };
 
   const handleDateChange = (event, selectedDate) => {
@@ -187,10 +281,24 @@ export default function AddHikeScreen({ navigation }) {
     handleChange('is_completed', isCompleted);
     if (isCompleted && !hike.completed_date) {
       handleChange('completed_date', new Date());
+    } else if (!isCompleted) {
+      // Remove completed_date error when switching to not completed
+      setErrors(prevErrors => {
+        const newErrors = { ...prevErrors };
+        delete newErrors.completed_date;
+        return newErrors;
+      });
     }
   };
 
-  // Updated getCurrentLocation function
+  const handleParkingChange = (itemValue) => {
+    handleChange("parking", itemValue);
+  };
+
+  const handleDifficultyChange = (itemValue) => {
+    handleChange("difficulty", itemValue);
+  };
+
   const getCurrentLocation = async () => {
     if (!locationPermissionGranted) {
       Alert.alert(
@@ -238,7 +346,6 @@ export default function AddHikeScreen({ navigation }) {
           longitude: location.coords.longitude,
         });
 
-        // Automatically set location when user clicks OK
         Alert.alert(
           "Location Found",
           `Location set to: ${locationName}`,
@@ -263,7 +370,6 @@ export default function AddHikeScreen({ navigation }) {
     }
   };
 
-  // Photo Functions
   const takePhoto = async () => {
     try {
       const result = await ImagePicker.launchCameraAsync({
@@ -304,7 +410,142 @@ export default function AddHikeScreen({ navigation }) {
     handleChange('photos', newPhotos);
   };
 
-  return (
+  // Confirmation Screen Component
+  const ConfirmationScreen = () => (
+    <View style={styles.confirmationContainer}>
+      <ScrollView style={styles.confirmationScrollView}>
+        <View style={styles.confirmationHeader}>
+          <Ionicons name="checkmark-circle" size={60} color="#1E6A65" />
+          <Text style={styles.confirmationTitle}>Confirm Hike Details</Text>
+          <Text style={styles.confirmationSubtitle}>
+            Please review your hike information before saving
+          </Text>
+        </View>
+
+        <View style={styles.confirmationSection}>
+          <Text style={styles.confirmationSectionTitle}>Basic Information</Text>
+          
+          <View style={styles.confirmationRow}>
+            <Text style={styles.confirmationLabel}>Name:</Text>
+            <Text style={styles.confirmationValue}>{hike.name}</Text>
+          </View>
+          
+          <View style={styles.confirmationRow}>
+            <Text style={styles.confirmationLabel}>Location:</Text>
+            <Text style={styles.confirmationValue}>{hike.location}</Text>
+          </View>
+          
+          <View style={styles.confirmationRow}>
+            <Text style={styles.confirmationLabel}>Date:</Text>
+            <Text style={styles.confirmationValue}>{hike.date.toDateString()}</Text>
+          </View>
+          
+          <View style={styles.confirmationRow}>
+            <Text style={styles.confirmationLabel}>Parking:</Text>
+            <Text style={styles.confirmationValue}>{hike.parking}</Text>
+          </View>
+        </View>
+
+        <View style={styles.confirmationSection}>
+          <Text style={styles.confirmationSectionTitle}>Hike Details</Text>
+          
+          <View style={styles.confirmationRow}>
+            <Text style={styles.confirmationLabel}>Length:</Text>
+            <Text style={styles.confirmationValue}>{hike.length} km</Text>
+          </View>
+          
+          <View style={styles.confirmationRow}>
+            <Text style={styles.confirmationLabel}>Route Type:</Text>
+            <Text style={styles.confirmationValue}>{hike.route_type || "Not specified"}</Text>
+          </View>
+          
+          <View style={styles.confirmationRow}>
+            <Text style={styles.confirmationLabel}>Difficulty:</Text>
+            <Text style={styles.confirmationValue}>{hike.difficulty}</Text>
+          </View>
+          
+          <View style={styles.confirmationRow}>
+            <Text style={styles.confirmationLabel}>Status:</Text>
+            <Text style={styles.confirmationValue}>
+              {hike.is_completed === 1 ? "Completed" : "Planned"}
+            </Text>
+          </View>
+
+          {hike.is_completed === 1 && hike.completed_date && (
+            <View style={styles.confirmationRow}>
+              <Text style={styles.confirmationLabel}>Completed Date:</Text>
+              <Text style={styles.confirmationValue}>{hike.completed_date.toDateString()}</Text>
+            </View>
+          )}
+        </View>
+
+        {hike.description && (
+          <View style={styles.confirmationSection}>
+            <Text style={styles.confirmationSectionTitle}>Description</Text>
+            <Text style={styles.confirmationDescription}>{hike.description}</Text>
+          </View>
+        )}
+
+        {hike.notes && (
+          <View style={styles.confirmationSection}>
+            <Text style={styles.confirmationSectionTitle}>Personal Notes</Text>
+            <Text style={styles.confirmationDescription}>{hike.notes}</Text>
+          </View>
+        )}
+
+        {hike.weather && (
+          <View style={styles.confirmationSection}>
+            <Text style={styles.confirmationSectionTitle}>Weather Conditions</Text>
+            <Text style={styles.confirmationValue}>{hike.weather}</Text>
+          </View>
+        )}
+
+        {hike.photos.length > 0 && (
+          <View style={styles.confirmationSection}>
+            <Text style={styles.confirmationSectionTitle}>
+              Photos ({hike.photos.length})
+            </Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.confirmationPhotos}>
+                {hike.photos.map((photo, index) => (
+                  <Image key={index} source={{ uri: photo }} style={styles.confirmationPhoto} />
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        )}
+
+        <View style={styles.confirmationButtons}>
+          <TouchableOpacity 
+            style={[styles.confirmationButton, styles.editButton]}
+            onPress={handleEditDetails}
+            disabled={isSubmitting}
+          >
+            <Ionicons name="arrow-back" size={20} color="#1E6A65" />
+            <Text style={styles.editButtonText}>Edit Details</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.confirmationButton, styles.saveButton]}
+            onPress={handleConfirmSave}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Ionicons name="save" size={20} color="#FFFFFF" />
+            )}
+            <Text style={styles.saveButtonText}>
+              {isSubmitting ? "Saving..." : "Confirm & Save"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
+  );
+
+  // Main Form Component - Using the same component structure without conditional rendering
+  const renderMainForm = () => (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Green Background Section */}
       <View style={styles.greenBackground}>
@@ -330,12 +571,14 @@ export default function AddHikeScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Name of Hike *</Text>
             <TextInput
+              ref={inputRefs.name}
               style={[styles.input, errors.name && styles.inputError]}
               placeholder="Enter hike name"
               value={hike.name}
               onChangeText={(text) => handleChange("name", text)}
               maxLength={100}
               autoCapitalize="words"
+              returnKeyType="next"
             />
             {errors.name && <Text style={styles.error}>{errors.name}</Text>}
           </View>
@@ -344,12 +587,14 @@ export default function AddHikeScreen({ navigation }) {
             <Text style={styles.label}>Location *</Text>
             <View style={styles.locationContainer}>
               <TextInput
+                ref={inputRefs.location}
                 style={[styles.input, styles.locationInput, errors.location && styles.inputError]}
                 placeholder="Enter location"
                 value={hike.location}
                 onChangeText={(text) => handleChange("location", text)}
                 maxLength={100}
                 autoCapitalize="words"
+                returnKeyType="next"
               />
               <TouchableOpacity 
                 style={styles.locationButton}
@@ -397,7 +642,7 @@ export default function AddHikeScreen({ navigation }) {
             <View style={[styles.pickerContainer, errors.parking && styles.inputError]}>
               <Picker
                 selectedValue={hike.parking}
-                onValueChange={(itemValue) => handleChange("parking", itemValue)}
+                onValueChange={handleParkingChange}
               >
                 <Picker.Item label="Select parking option" value="" />
                 <Picker.Item label="Yes" value="Yes" />
@@ -410,12 +655,14 @@ export default function AddHikeScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Length (km) *</Text>
             <TextInput
+              ref={inputRefs.length}
               style={[styles.input, errors.length && styles.inputError]}
               placeholder="Enter length in kilometers"
               value={hike.length}
               onChangeText={(text) => handleChange("length", formatLength(text))}
               keyboardType="decimal-pad"
               maxLength={6}
+              returnKeyType="next"
             />
             {errors.length && <Text style={styles.error}>{errors.length}</Text>}
           </View>
@@ -441,7 +688,7 @@ export default function AddHikeScreen({ navigation }) {
             <View style={[styles.pickerContainer, errors.difficulty && styles.inputError]}>
               <Picker
                 selectedValue={hike.difficulty}
-                onValueChange={(itemValue) => handleChange("difficulty", itemValue)}
+                onValueChange={handleDifficultyChange}
               >
                 <Picker.Item label="Select difficulty level" value="" />
                 <Picker.Item label="Easy" value="Easy" />
@@ -529,6 +776,7 @@ export default function AddHikeScreen({ navigation }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Description</Text>
             <TextInput
+              ref={inputRefs.description}
               style={[styles.input, styles.textArea]}
               placeholder="Describe your hike experience..."
               value={hike.description}
@@ -538,12 +786,14 @@ export default function AddHikeScreen({ navigation }) {
               textAlignVertical="top"
               maxLength={500}
               autoCapitalize="sentences"
+              returnKeyType="next"
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Personal Notes</Text>
             <TextInput
+              ref={inputRefs.notes}
               style={[styles.input, styles.textArea]}
               placeholder="Add any personal notes or observations..."
               value={hike.notes}
@@ -553,18 +803,21 @@ export default function AddHikeScreen({ navigation }) {
               textAlignVertical="top"
               maxLength={500}
               autoCapitalize="sentences"
+              returnKeyType="next"
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Weather Conditions</Text>
             <TextInput
+              ref={inputRefs.weather}
               style={styles.input}
               placeholder="Describe the weather during your hike"
               value={hike.weather}
               onChangeText={(text) => handleChange("weather", text)}
               maxLength={100}
               autoCapitalize="sentences"
+              returnKeyType="done"
             />
           </View>
 
@@ -575,13 +828,16 @@ export default function AddHikeScreen({ navigation }) {
             disabled={isSubmitting}
           >
             <Text style={styles.buttonText}>
-              {isSubmitting ? "Adding..." : "Add Hike"}
+              {isSubmitting ? "Validating..." : "Review & Submit"}
             </Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
     </View>
   );
+
+  // Render either the main form or confirmation screen
+  return showConfirmation ? <ConfirmationScreen /> : renderMainForm();
 }
 
 const styles = StyleSheet.create({
@@ -771,5 +1027,124 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
+  },
+
+  // Confirmation Screen Styles
+  confirmationContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    paddingTop: 60,
+  },
+  confirmationScrollView: {
+    flex: 1,
+    padding: 16,
+  },
+  confirmationHeader: {
+    alignItems: 'center',
+    marginBottom: 30,
+    paddingVertical: 20,
+  },
+  confirmationTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1E6A65',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  confirmationSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  confirmationSection: {
+    backgroundColor: '#f8f9fa',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  confirmationSectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E6A65',
+    marginBottom: 12,
+  },
+  confirmationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  confirmationLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#4a5568',
+    flex: 1,
+  },
+  confirmationValue: {
+    fontSize: 14,
+    color: '#2d3748',
+    fontWeight: '400',
+    flex: 1,
+    textAlign: 'right',
+  },
+  confirmationDescription: {
+    fontSize: 14,
+    color: '#2d3748',
+    lineHeight: 20,
+    textAlign: 'left',
+  },
+  confirmationCoordinates: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  confirmationPhotos: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  confirmationPhoto: {
+    width: 100,
+    height: 100,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  confirmationButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+    marginBottom: 30,
+  },
+  confirmationButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  editButton: {
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#1E6A65',
+  },
+  saveButton: {
+    backgroundColor: '#1E6A65',
+  },
+  editButtonText: {
+    color: '#1E6A65',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

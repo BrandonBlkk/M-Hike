@@ -176,19 +176,6 @@ export default function MapScreen({ navigation, route }) {
     }
   };
 
-  const getDifficultyIcon = (difficulty) => {
-    switch (difficulty.toLowerCase()) {
-      case 'easy':
-        return '🏞️';
-      case 'moderate':
-        return '⛰️';
-      case 'hard':
-        return '🏔️';
-      default:
-        return '🥾';
-    }
-  };
-
   if (loading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -247,7 +234,7 @@ export default function MapScreen({ navigation, route }) {
           </MapView>
 
           {/* Map Controls */}
-          <View style={[styles.mapControls, { top: insets.top + 20 }]}>
+          <View style={[styles.mapControls, { top: insets.top + 55 }]}>
             {/* Location Button */}
             <TouchableOpacity 
               style={styles.controlButton}
@@ -283,7 +270,7 @@ export default function MapScreen({ navigation, route }) {
 
           {/* Legend */}
           {showLegend && (
-            <View style={[styles.legend, { top: insets.top + 20 }]}>
+            <View style={[styles.legend, { top: insets.top + 55 }]}>
               <Text style={styles.legendTitle}>Difficulty Legend</Text>
               <View style={styles.legendItem}>
                 <View style={[styles.legendColor, { backgroundColor: '#4CAF50' }]} />

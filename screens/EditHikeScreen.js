@@ -45,6 +45,7 @@ export default function EditHikeScreen({ navigation, route }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
   const [hikeId, setHikeId] = useState(null);
+  const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
 
   // Get hike data from navigation params
   useEffect(() => {
@@ -77,12 +78,22 @@ export default function EditHikeScreen({ navigation, route }) {
       const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
       const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
-      if (locationStatus !== 'granted') {
-        Alert.alert('Permission needed', 'Location permission is required to automatically get your location.');
+      if (locationStatus === 'granted') {
+        setLocationPermissionGranted(true);
+      } else {
+        Alert.alert(
+          'Location Permission Needed', 
+          'Location permission is required to automatically get your current location. Please enable it in settings.',
+          [{ text: "OK" }]
+        );
       }
       
       if (cameraStatus !== 'granted' || libraryStatus !== 'granted') {
-        Alert.alert('Permission needed', 'Camera and photo library permissions are required to add photos to your hikes.');
+        Alert.alert(
+          'Photo Permission Needed', 
+          'Camera and photo library permissions are required to add photos to your hikes.',
+          [{ text: "OK" }]
+        );
       }
     })();
   }, []);
@@ -191,31 +202,76 @@ export default function EditHikeScreen({ navigation, route }) {
     }
   };
 
-  // Enhanced location function that gets coordinates
+  // Get Current Location
   const getCurrentLocation = async () => {
+    if (!locationPermissionGranted) {
+      Alert.alert(
+        "Location Permission Required",
+        "Please grant location permission in settings to use this feature.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     setGettingLocation(true);
     try {
       const location = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
+        timeout: 15000,
       });
 
       // Reverse geocode to get address
-      const [address] = await Location.reverseGeocodeAsync({
+      const addresses = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
 
-      const locationName = address.city || address.region || 'Current Location';
-      
-      // Store both location name and coordinates
-      handleChange('location', locationName);
-      handleChange('locationCoords', {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-      
+      if (addresses && addresses.length > 0) {
+        const address = addresses[0];
+        let locationName = '';
+
+        if (address.city) {
+          locationName = address.city;
+          if (address.region) {
+            locationName += `, ${address.region}`;
+          }
+        } else if (address.region) {
+          locationName = address.region;
+        } else if (address.subregion) {
+          locationName = address.subregion;
+        } else if (address.country) {
+          locationName = address.country;
+        } else {
+          locationName = 'Current Location';
+        }
+
+        // Automatically set the location in the input field
+        handleChange('location', locationName);
+        handleChange('locationCoords', {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        });
+
+        // Show success message
+        Alert.alert(
+          "Location Found",
+          `Location set to: ${locationName}`,
+          [
+            {
+              text: "OK",
+              onPress: () => handleChange('location', locationName)
+            }
+          ]
+        );
+      } else {
+        throw new Error("No address found for coordinates");
+      }
     } catch (error) {
-      Alert.alert("Error", "Failed to get current location");
+      Alert.alert(
+        "Location Error",
+        "Failed to get current location. Please make sure location services are enabled and try again.",
+        [{ text: "OK" }]
+      );
     } finally {
       setGettingLocation(false);
     }
