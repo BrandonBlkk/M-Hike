@@ -132,6 +132,44 @@ export default function HikeListScreen({ navigation }) {
     );
   };
 
+  const handleDeleteAllHikes = () => {
+    if (hikes.length === 0) {
+      Alert.alert("No Hikes", "There are no hikes to delete.");
+      return;
+    }
+
+    Alert.alert(
+      "Delete All Hikes",
+      `Are you sure you want to delete ALL ${hikes.length} hikes? This action cannot be undone.`,
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete All",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const result = await hikeRepository.clearAllHikes();
+              if (result.success) {
+                // Clear all hikes from local state immediately
+                setHikes([]);
+                setFilteredHikes([]);
+                Alert.alert("Success", "All hikes have been deleted successfully");
+              } else {
+                Alert.alert("Error", result.error || "Failed to delete all hikes");
+              }
+            } catch (error) {
+              Alert.alert("Error", "An error occurred while deleting all hikes");
+              console.error('Error deleting all hikes:', error);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const handleEditHike = (hike) => {
     // Navigate to EditHikeScreen within the stack
     navigation.navigate('EditHike', { 
@@ -227,11 +265,21 @@ export default function HikeListScreen({ navigation }) {
       <View style={styles.greenBackground}>
         {/* Title Bar */}
         <View style={styles.titleBar}>
-          <Text style={styles.titleText}>My Hikes</Text>
-          <Text style={styles.subtitleText}>
-            {filteredHikes.length} hike{filteredHikes.length !== 1 ? 's' : ''} recorded
-            {searchQuery ? ` (${hikes.length} total)` : ''}
-          </Text>
+          <View style={styles.titleContainer}>
+            <Text style={styles.titleText}>My Hikes</Text>
+            <Text style={styles.subtitleText}>
+              {filteredHikes.length} hike{filteredHikes.length !== 1 ? 's' : ''} recorded
+              {searchQuery ? ` (${hikes.length} total)` : ''}
+            </Text>
+          </View>
+          {hikes.length > 0 && (
+            <TouchableOpacity 
+              style={styles.deleteAllButton}
+              onPress={handleDeleteAllHikes}
+            >
+              <Text style={styles.clearAllButton}>Clear All</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Search Bar */}
@@ -565,18 +613,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f3f3ff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  titleContainer: {
+    flex: 1,
   },
   titleText: {
     fontSize: 20,
     fontWeight: '700',
     color: '#000000ff',
-    textAlign: 'center',
+    textAlign: 'left',
   },
   subtitleText: {
     fontSize: 14,
     color: '#666',
-    textAlign: 'center',
+    textAlign: 'left',
     marginTop: 4,
+  },
+  deleteAllButton: {
+    padding: 8,
+    marginLeft: 10,
+  },
+  clearAllButton: {
+    color: '#f44336',
   },
   // Search Container
   searchContainer: {

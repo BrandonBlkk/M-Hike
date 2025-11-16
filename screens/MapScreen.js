@@ -293,7 +293,7 @@ export default function MapScreen({ navigation, route }) {
           )}
 
           {/* Map Type Indicator */}
-          <View style={[styles.mapTypeIndicator, { bottom: insets.bottom + 20 }]}>
+          <View style={[styles.mapTypeIndicator, { bottom: insets.bottom + 20, left: 10 }]}>
             <Text style={styles.mapTypeText}>
               {mapType === 'standard' ? 'Standard Map' : 'Satellite View'}
             </Text>
