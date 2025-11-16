@@ -17,7 +17,7 @@ import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { databaseService } from '../database/databaseService';
+import { hikeRepository } from '../database/hikeRepository';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function AddHikeScreen({ navigation }) {
@@ -201,7 +201,7 @@ export default function AddHikeScreen({ navigation }) {
     setIsSubmitting(true);
     
     try {
-      const result = await databaseService.saveHike(hike);
+      const result = await hikeRepository.createHike(hike);
       
       if (result.success) {
         Alert.alert(

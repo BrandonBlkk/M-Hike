@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { databaseService } from '../database/databaseService';
+import { hikeRepository } from '../database/hikeRepository';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
@@ -36,32 +36,37 @@ export default function MapScreen({ navigation, route }) {
 
   const loadHikes = async () => {
     try {
-      const allHikes = await databaseService.getAllHikes();
-      const hikesWithCoords = allHikes.filter(hike => hike.locationCoords);
-      setHikes(hikesWithCoords);
+      const result = await hikeRepository.getAllHikes();
+      if (result.success) {
+        const hikesWithCoords = result.hikes.filter(hike => hike.locationCoords);
+        setHikes(hikesWithCoords);
 
-      // If there's a focused hike, center map on it
-      if (focusedHike && focusedHike.locationCoords) {
-        setRegion({
-          ...focusedHike.locationCoords,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        });
-      }
-      // Otherwise, set map region to show all markers if there are hikes with coordinates
-      else if (hikesWithCoords.length > 0) {
-        const coordinates = hikesWithCoords.map(hike => hike.locationCoords);
-        const minLat = Math.min(...coordinates.map(coord => coord.latitude));
-        const maxLat = Math.max(...coordinates.map(coord => coord.latitude));
-        const minLng = Math.min(...coordinates.map(coord => coord.longitude));
-        const maxLng = Math.max(...coordinates.map(coord => coord.longitude));
-        
-        setRegion({
-          latitude: (minLat + maxLat) / 2,
-          longitude: (minLng + maxLng) / 2,
-          latitudeDelta: (maxLat - minLat) * 1.5 + 0.01,
-          longitudeDelta: (maxLng - minLng) * 1.5 + 0.01,
-        });
+        // If there's a focused hike, center map on it
+        if (focusedHike && focusedHike.locationCoords) {
+          setRegion({
+            ...focusedHike.locationCoords,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          });
+        }
+        // Otherwise, set map region to show all markers if there are hikes with coordinates
+        else if (hikesWithCoords.length > 0) {
+          const coordinates = hikesWithCoords.map(hike => hike.locationCoords);
+          const minLat = Math.min(...coordinates.map(coord => coord.latitude));
+          const maxLat = Math.max(...coordinates.map(coord => coord.latitude));
+          const minLng = Math.min(...coordinates.map(coord => coord.longitude));
+          const maxLng = Math.max(...coordinates.map(coord => coord.longitude));
+          
+          setRegion({
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLng + maxLng) / 2,
+            latitudeDelta: (maxLat - minLat) * 1.5 + 0.01,
+            longitudeDelta: (maxLng - minLng) * 1.5 + 0.01,
+          });
+        }
+      } else {
+        Alert.alert("Error", "Failed to load hikes for map");
+        console.error('Error loading hikes for map:', result.error);
       }
     } catch (error) {
       Alert.alert("Error", "Failed to load hikes for map");

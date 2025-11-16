@@ -8,6 +8,7 @@ export const getDatabase = () => {
   if (!db) {
     try {
       db = SQLite.openDatabaseSync(databaseName);
+      initDatabase(); // Initialize tables when database is first opened
     } catch (error) {
       console.error('Error opening database:', error);
       throw error;
@@ -20,8 +21,8 @@ export const initDatabase = () => {
   try {
     const db = getDatabase();
     
-    db.exec([{
-      sql: `CREATE TABLE IF NOT EXISTS hikes (
+    db.execSync(`
+      CREATE TABLE IF NOT EXISTS hikes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         location TEXT NOT NULL,
@@ -33,15 +34,17 @@ export const initDatabase = () => {
         description TEXT,
         notes TEXT,
         weather TEXT,
+        photos TEXT,
+        locationCoords TEXT,
         is_completed INTEGER DEFAULT 0,
         completed_date TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )`,
-      args: []
-    }], false, (_, result) => {
-      console.log('Database initialized successfully');
-    });
+      );
+    `);
+    
+    console.log('Database initialized successfully');
   } catch (error) {
     console.error('Error initializing database:', error);
+    throw error;
   }
 };

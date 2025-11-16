@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { databaseService } from '../database/databaseService';
+import { hikeRepository } from '../database/hikeRepository';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function HomeScreen({ navigation }) {
@@ -12,12 +12,16 @@ export default function HomeScreen({ navigation }) {
 
   const loadRecentHikes = async () => {
     try {
-      const allHikes = await databaseService.getAllHikes();
-      // Sort hikes by date (newest first) and take the first 3
-      const sortedHikes = allHikes
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .slice(0, 3);
-      setRecentHikes(sortedHikes);
+      const result = await hikeRepository.getAllHikes();
+      if (result.success) {
+        // Sort hikes by date (newest first) and take the first 3
+        const sortedHikes = result.hikes
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 3);
+        setRecentHikes(sortedHikes);
+      } else {
+        console.error('Error loading recent hikes:', result.error);
+      }
     } catch (error) {
       console.error('Error loading recent hikes:', error);
     } finally {

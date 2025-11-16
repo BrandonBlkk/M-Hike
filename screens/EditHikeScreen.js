@@ -17,7 +17,7 @@ import { Picker } from "@react-native-picker/picker";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { databaseService } from '../database/databaseService';
+import { hikeRepository } from '../database/hikeRepository';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function EditHikeScreen({ navigation, route }) {
@@ -46,6 +46,16 @@ export default function EditHikeScreen({ navigation, route }) {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [hikeId, setHikeId] = useState(null);
   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
+
+  // Use refs to maintain input focus
+  const inputRefs = {
+    name: React.useRef(null),
+    location: React.useRef(null),
+    length: React.useRef(null),
+    description: React.useRef(null),
+    notes: React.useRef(null),
+    weather: React.useRef(null),
+  };
 
   // Get hike data from navigation params
   useEffect(() => {
@@ -98,33 +108,101 @@ export default function EditHikeScreen({ navigation, route }) {
     })();
   }, []);
 
+  const validateField = (field, value) => {
+    let fieldError = null;
+    
+    switch (field) {
+      case "name":
+        if (!value.trim()) fieldError = "Name of hike is required";
+        break;
+      case "location":
+        if (!value.trim()) fieldError = "Location is required";
+        break;
+      case "date":
+        if (!value) fieldError = "Date is required";
+        break;
+      case "parking":
+        if (!value) fieldError = "Parking info is required";
+        break;
+      case "length":
+        if (!value.trim()) fieldError = "Length is required";
+        else if (isNaN(parseFloat(value)) || parseFloat(value) <= 0) 
+          fieldError = "Length must be a valid number";
+        break;
+      case "difficulty":
+        if (!value) fieldError = "Difficulty is required";
+        break;
+      case "completed_date":
+        if (hike.is_completed === 1 && !value) 
+          fieldError = "Completed date is required for completed hikes";
+        break;
+      default:
+        break;
+    }
+
+    return fieldError;
+  };
+
   const handleChange = (field, value) => {
-    setHike({ ...hike, [field]: value });
+    setHike(prevHike => ({
+      ...prevHike,
+      [field]: value
+    }));
+
+    // Real-time error removal
+    if (errors[field]) {
+      const fieldError = validateField(field, value);
+      if (!fieldError) {
+        // Remove error if field is now valid
+        setErrors(prevErrors => {
+          const newErrors = { ...prevErrors };
+          delete newErrors[field];
+          return newErrors;
+        });
+      } else {
+        // Update error message if still invalid but value changed
+        setErrors(prevErrors => ({
+          ...prevErrors,
+          [field]: fieldError
+        }));
+      }
+    }
+  };
+
+  const validateForm = () => {
+    let newErrors = {};
+    
+    // Validate all fields
+    const fieldsToValidate = [
+      { field: "name", value: hike.name },
+      { field: "location", value: hike.location },
+      { field: "date", value: hike.date },
+      { field: "parking", value: hike.parking },
+      { field: "length", value: hike.length },
+      { field: "difficulty", value: hike.difficulty },
+      { field: "completed_date", value: hike.completed_date }
+    ];
+
+    fieldsToValidate.forEach(({ field, value }) => {
+      const error = validateField(field, value);
+      if (error) {
+        newErrors[field] = error;
+      }
+    });
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
     
-    let newErrors = {};
-    if (!hike.name.trim()) newErrors.name = "Name of hike is required";
-    if (!hike.location.trim()) newErrors.location = "Location is required";
-    if (!hike.date) newErrors.date = "Date is required";
-    if (!hike.parking) newErrors.parking = "Parking info is required";
-    if (!hike.length.trim()) newErrors.length = "Length is required";
-    else if (isNaN(parseFloat(hike.length)) || parseFloat(hike.length) <= 0) 
-      newErrors.length = "Length must be a valid number";
-    if (!hike.difficulty) newErrors.difficulty = "Difficulty is required";
-    if (hike.is_completed === 1 && !hike.completed_date) 
-      newErrors.completed_date = "Completed date is required for completed hikes";
-
-    setErrors(newErrors);
-
-    if (Object.keys(newErrors).length === 0) {
+    if (validateForm()) {
       setIsSubmitting(true);
       
       try {
         // Update existing hike
-        const result = await databaseService.updateHike(hikeId, hike);
+        const result = await hikeRepository.updateHike(hikeId, hike);
         
         if (result.success) {
           Alert.alert(
@@ -147,7 +225,7 @@ export default function EditHikeScreen({ navigation, route }) {
         } else {
           Alert.alert(
             "Error", 
-            "Failed to update hike. Please try again.",
+            result.error || "Failed to update hike. Please try again.",
             [
               {
                 text: "OK",
@@ -199,7 +277,22 @@ export default function EditHikeScreen({ navigation, route }) {
     handleChange('is_completed', isCompleted);
     if (isCompleted && !hike.completed_date) {
       handleChange('completed_date', new Date());
+    } else if (!isCompleted) {
+      // Remove completed_date error when switching to not completed
+      setErrors(prevErrors => {
+        const newErrors = { ...prevErrors };
+        delete newErrors.completed_date;
+        return newErrors;
+      });
     }
+  };
+
+  const handleParkingChange = (itemValue) => {
+    handleChange("parking", itemValue);
+  };
+
+  const handleDifficultyChange = (itemValue) => {
+    handleChange("difficulty", itemValue);
   };
 
   // Get Current Location
@@ -220,7 +313,6 @@ export default function EditHikeScreen({ navigation, route }) {
         timeout: 15000,
       });
 
-      // Reverse geocode to get address
       const addresses = await Location.reverseGeocodeAsync({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
@@ -245,14 +337,12 @@ export default function EditHikeScreen({ navigation, route }) {
           locationName = 'Current Location';
         }
 
-        // Automatically set the location in the input field
         handleChange('location', locationName);
         handleChange('locationCoords', {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
 
-        // Show success message
         Alert.alert(
           "Location Found",
           `Location set to: ${locationName}`,
@@ -342,12 +432,14 @@ export default function EditHikeScreen({ navigation, route }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Name of Hike *</Text>
             <TextInput
+              ref={inputRefs.name}
               style={[styles.input, errors.name && styles.inputError]}
               placeholder="Enter hike name"
               value={hike.name}
               onChangeText={(text) => handleChange("name", text)}
               maxLength={100}
               autoCapitalize="words"
+              returnKeyType="next"
             />
             {errors.name && <Text style={styles.error}>{errors.name}</Text>}
           </View>
@@ -356,12 +448,14 @@ export default function EditHikeScreen({ navigation, route }) {
             <Text style={styles.label}>Location *</Text>
             <View style={styles.locationContainer}>
               <TextInput
+                ref={inputRefs.location}
                 style={[styles.input, styles.locationInput, errors.location && styles.inputError]}
                 placeholder="Enter location"
                 value={hike.location}
                 onChangeText={(text) => handleChange("location", text)}
                 maxLength={100}
                 autoCapitalize="words"
+                returnKeyType="next"
               />
               <TouchableOpacity 
                 style={styles.locationButton}
@@ -409,7 +503,7 @@ export default function EditHikeScreen({ navigation, route }) {
             <View style={[styles.pickerContainer, errors.parking && styles.inputError]}>
               <Picker
                 selectedValue={hike.parking}
-                onValueChange={(itemValue) => handleChange("parking", itemValue)}
+                onValueChange={handleParkingChange}
               >
                 <Picker.Item label="Select parking option" value="" />
                 <Picker.Item label="Yes" value="Yes" />
@@ -422,12 +516,14 @@ export default function EditHikeScreen({ navigation, route }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Length (km) *</Text>
             <TextInput
+              ref={inputRefs.length}
               style={[styles.input, errors.length && styles.inputError]}
               placeholder="Enter length in kilometers"
               value={hike.length}
               onChangeText={(text) => handleChange("length", formatLength(text))}
               keyboardType="decimal-pad"
               maxLength={6}
+              returnKeyType="next"
             />
             {errors.length && <Text style={styles.error}>{errors.length}</Text>}
           </View>
@@ -453,7 +549,7 @@ export default function EditHikeScreen({ navigation, route }) {
             <View style={[styles.pickerContainer, errors.difficulty && styles.inputError]}>
               <Picker
                 selectedValue={hike.difficulty}
-                onValueChange={(itemValue) => handleChange("difficulty", itemValue)}
+                onValueChange={handleDifficultyChange}
               >
                 <Picker.Item label="Select difficulty level" value="" />
                 <Picker.Item label="Easy" value="Easy" />
@@ -541,6 +637,7 @@ export default function EditHikeScreen({ navigation, route }) {
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Description</Text>
             <TextInput
+              ref={inputRefs.description}
               style={[styles.input, styles.textArea]}
               placeholder="Describe your hike experience..."
               value={hike.description}
@@ -550,12 +647,14 @@ export default function EditHikeScreen({ navigation, route }) {
               textAlignVertical="top"
               maxLength={500}
               autoCapitalize="sentences"
+              returnKeyType="next"
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Personal Notes</Text>
             <TextInput
+              ref={inputRefs.notes}
               style={[styles.input, styles.textArea]}
               placeholder="Add any personal notes or observations..."
               value={hike.notes}
@@ -565,18 +664,21 @@ export default function EditHikeScreen({ navigation, route }) {
               textAlignVertical="top"
               maxLength={500}
               autoCapitalize="sentences"
+              returnKeyType="next"
             />
           </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Weather Conditions</Text>
             <TextInput
+              ref={inputRefs.weather}
               style={styles.input}
               placeholder="Describe the weather during your hike"
               value={hike.weather}
               onChangeText={(text) => handleChange("weather", text)}
               maxLength={100}
               autoCapitalize="sentences"
+              returnKeyType="done"
             />
           </View>
 

@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
-import { databaseService } from '../database/databaseService';
+import { hikeRepository } from '../database/hikeRepository';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function HikeListScreen({ navigation }) {
@@ -34,9 +34,14 @@ export default function HikeListScreen({ navigation }) {
 
   const loadHikes = async () => {
     try {
-        const allHikes = await databaseService.getAllHikes();
-        setHikes(allHikes);
-        setFilteredHikes(allHikes);
+        const result = await hikeRepository.getAllHikes();
+        if (result.success) {
+          setHikes(result.hikes);
+          setFilteredHikes(result.hikes);
+        } else {
+          Alert.alert("Error", "Failed to load hikes");
+          console.error('Error loading hikes:', result.error);
+        }
     } catch (error) {
         Alert.alert("Error", "Failed to load hikes");
         console.error('Error loading hikes:', error);
@@ -105,13 +110,13 @@ export default function HikeListScreen({ navigation }) {
           style: "destructive",
           onPress: async () => {
             try {
-              const result = await databaseService.deleteHike(hikeId);
+              const result = await hikeRepository.deleteHike(hikeId);
               if (result.success) {
                 // Remove the hike from local state immediately
                 setHikes(prevHikes => prevHikes.filter(hike => hike.id !== hikeId));
                 Alert.alert("Success", "Hike deleted successfully");
               } else {
-                Alert.alert("Error", "Failed to delete hike");
+                Alert.alert("Error", result.error || "Failed to delete hike");
               }
             } catch (error) {
               Alert.alert("Error", "An error occurred while deleting the hike");
