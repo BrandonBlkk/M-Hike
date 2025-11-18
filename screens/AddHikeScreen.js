@@ -108,29 +108,73 @@ export default function AddHikeScreen({ navigation }) {
     
     switch (field) {
       case "name":
-        if (!value.trim()) fieldError = "Name of hike is required";
+        if (!value.trim()) {
+          fieldError = "Name of hike is required";
+        } else if (value.trim().length < 2) {
+          fieldError = "Hike name must be at least 2 characters long";
+        } else if (!/^[a-zA-Z0-9\s\-_.,!()&]+$/.test(value.trim())) {
+          fieldError = "Hike name can only contain letters, numbers, spaces, and basic punctuation";
+        }
         break;
+        
       case "location":
-        if (!value.trim()) fieldError = "Location is required";
+        if (!value.trim()) {
+          fieldError = "Location is required";
+        } else if (value.trim().length < 2) {
+          fieldError = "Location must be at least 2 characters long";
+        } else if (!/^[a-zA-Z0-9\s\-_,.()&]+$/.test(value.trim())) {
+          fieldError = "Location can only contain letters, numbers, spaces, and basic punctuation";
+        }
         break;
+        
       case "date":
-        if (!value) fieldError = "Date is required";
+        if (!value) {
+          fieldError = "Date is required";
+        } else if (!(value instanceof Date) || isNaN(value.getTime())) {
+          fieldError = "Invalid date format";
+        } else if (value > new Date()) {
+          fieldError = "Hike date cannot be in the future";
+        } else if (value < new Date(2000, 0, 1)) {
+          fieldError = "Hike date cannot be before year 2000";
+        }
         break;
+        
       case "parking":
-        if (!value) fieldError = "Parking info is required";
+        if (!value) {
+          fieldError = "Please select parking availability";
+        } 
         break;
+        
       case "length":
-        if (!value.trim()) fieldError = "Length is required";
-        else if (isNaN(parseFloat(value)) || parseFloat(value) <= 0) 
+        if (!value.trim()) {
+          fieldError = "Length is required";
+        } else if (isNaN(parseFloat(value))) {
           fieldError = "Length must be a valid number";
+        } else if (parseFloat(value) <= 0) {
+          fieldError = "Length must be greater than 0 km";
+        } else if (parseFloat(value) < 0.1) {
+          fieldError = "Length must be at least 0.1 km";
+        } else if (!/^\d+(\.\d{1,2})?$/.test(value)) {
+          fieldError = "Length can have up to 2 decimal places (e.g., 5.25)";
+        } else if (parseFloat(value).toString() !== value.trim()) {
+          fieldError = "Please enter a valid number format";
+        }
         break;
+        
       case "difficulty":
-        if (!value) fieldError = "Difficulty is required";
+        if (!value) {
+          fieldError = "Please select difficulty level";
+        }
         break;
+        
       case "completed_date":
-        if (hike.is_completed === 1 && !value) 
-          fieldError = "Completed date is required for completed hikes";
+        if (hike.is_completed === 1) {
+          if (!value) {
+            fieldError = "Completed date is required for completed hikes";
+          }
+        }
         break;
+        
       default:
         break;
     }

@@ -8,7 +8,7 @@ export const getDatabase = () => {
   if (!db) {
     try {
       db = SQLite.openDatabaseSync(databaseName);
-      initDatabase(); // Initialize tables when database is first opened
+      initDatabase();
     } catch (error) {
       console.error('Error opening database:', error);
       throw error;
