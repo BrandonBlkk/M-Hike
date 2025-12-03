@@ -108,34 +108,20 @@ export default function AddHikeScreen({ navigation }) {
     
     switch (field) {
       case "name":
-        if (!value.trim()) {
+        if (!value || !value.trim()) {
           fieldError = "Name of hike is required";
-        } else if (value.trim().length < 2) {
-          fieldError = "Hike name must be at least 2 characters long";
-        } else if (!/^[a-zA-Z0-9\s\-_.,!()&]+$/.test(value.trim())) {
-          fieldError = "Hike name can only contain letters, numbers, spaces, and basic punctuation";
         }
         break;
         
       case "location":
-        if (!value.trim()) {
+        if (!value || !value.trim()) {
           fieldError = "Location is required";
-        } else if (value.trim().length < 2) {
-          fieldError = "Location must be at least 2 characters long";
-        } else if (!/^[a-zA-Z0-9\s\-_,.()&]+$/.test(value.trim())) {
-          fieldError = "Location can only contain letters, numbers, spaces, and basic punctuation";
         }
         break;
         
       case "date":
         if (!value) {
           fieldError = "Date is required";
-        } else if (!(value instanceof Date) || isNaN(value.getTime())) {
-          fieldError = "Invalid date format";
-        } else if (value > new Date()) {
-          fieldError = "Hike date cannot be in the future";
-        } else if (value < new Date(2000, 0, 1)) {
-          fieldError = "Hike date cannot be before year 2000";
         }
         break;
         
@@ -146,18 +132,8 @@ export default function AddHikeScreen({ navigation }) {
         break;
         
       case "length":
-        if (!value.trim()) {
+        if (!value || !value.trim()) {
           fieldError = "Length is required";
-        } else if (isNaN(parseFloat(value))) {
-          fieldError = "Length must be a valid number";
-        } else if (parseFloat(value) <= 0) {
-          fieldError = "Length must be greater than 0 km";
-        } else if (parseFloat(value) < 0.1) {
-          fieldError = "Length must be at least 0.1 km";
-        } else if (!/^\d+(\.\d{1,2})?$/.test(value)) {
-          fieldError = "Length can have up to 2 decimal places (e.g., 5.25)";
-        } else if (parseFloat(value).toString() !== value.trim()) {
-          fieldError = "Please enter a valid number format";
         }
         break;
         
@@ -675,7 +651,6 @@ export default function AddHikeScreen({ navigation }) {
                 mode="date"
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 onChange={handleDateChange}
-                maximumDate={new Date()}
               />
             )}
             {errors.date && <Text style={styles.error}>{errors.date}</Text>}
@@ -777,7 +752,6 @@ export default function AddHikeScreen({ navigation }) {
                     mode="date"
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                     onChange={handleCompletedDateChange}
-                    maximumDate={new Date()}
                   />
                 )}
                 {errors.completed_date && <Text style={styles.error}>{errors.completed_date}</Text>}

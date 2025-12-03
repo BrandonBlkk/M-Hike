@@ -67,10 +67,17 @@ export default function HomeScreen({ navigation }) {
     }
   };
 
+  const handleRecentHikePress = (hike) => {
+    navigation.navigate('HikeDetails', { 
+      hikeId: hike.id,
+      hike: hike 
+    });
+  };
+
   const renderRecentHike = ({ item }) => (
     <TouchableOpacity 
       style={styles.recentHikeCard}
-      onPress={() => navigation.navigate('HikeList')}
+      onPress={() => handleRecentHikePress(item)}
     >
       <View style={styles.hikeHeader}>
         <View style={styles.hikeIconContainer}>

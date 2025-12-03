@@ -11,6 +11,7 @@ import EditHikeScreen from './screens/EditHikeScreen';
 import HikeListScreen from './screens/HikeListScreen';
 import MapScreen from './screens/MapScreen';
 import WeatherScreen from './screens/WeatherScreen';
+import HikeDetailsScreen from './screens/HikeDetailsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -20,6 +21,18 @@ function HikeListStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HikeListMain" component={HikeListScreen} />
+      <Stack.Screen name="EditHike" component={EditHikeScreen} />
+      <Stack.Screen name="HikeDetails" component={HikeDetailsScreen} />
+    </Stack.Navigator>
+  );
+}
+
+// Stack navigator for Home to handle HikeDetails navigation
+function HomeStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain" component={HomeScreen} />
+      <Stack.Screen name="HikeDetails" component={HikeDetailsScreen} />
       <Stack.Screen name="EditHike" component={EditHikeScreen} />
     </Stack.Navigator>
   );
@@ -60,7 +73,7 @@ export default function App() {
         >
           <Tab.Screen 
             name="Home" 
-            component={HomeScreen}
+            component={HomeStack}
             options={{
               tabBarLabel: 'Home',
               tabBarIcon: ({ color, size }) => (

@@ -183,6 +183,14 @@ export default function HikeListScreen({ navigation }) {
     navigation.navigate('Map', { focusedHike: hike });
   };
 
+  const handleHikeDetailsPress = (hike) => {
+    // Navigate to HikeDetails screen with the full hike data
+    navigation.navigate('HikeDetails', { 
+      hikeId: hike.id,
+      hike: hike 
+    });
+  };
+
   const clearSearch = () => {
     setSearchQuery('');
   };
@@ -404,12 +412,7 @@ export default function HikeListScreen({ navigation }) {
                     {/* Details Section */}
                     <TouchableOpacity 
                       style={styles.hikeDetails}
-                      onPress={() => {
-                        Alert.alert(
-                          hike.name,
-                          `Location: ${hike.location}\nDate: ${formatDate(hike.date)}\nLength: ${hike.length}km\nDifficulty: ${hike.difficulty}\nParking: ${hike.parking}\nRoute Type: ${hike.route_type || 'Not specified'}\nStatus: ${hike.is_completed ? 'Completed' : 'Planned'}${hike.is_completed && hike.completed_date ? `\nCompleted Date: ${formatDate(hike.completed_date)}` : ''}\n${hike.description ? `Description: ${hike.description}\n` : ''}${hike.weather ? `Weather: ${hike.weather}` : ''}`
-                        );
-                      }}
+                      onPress={() => handleHikeDetailsPress(hike)}
                     >
                       {/* Stats Row */}
                       <View style={styles.statsRow}>
@@ -947,6 +950,21 @@ const styles = StyleSheet.create({
   weatherText: {
     fontSize: 13,
     color: '#666',
+    fontStyle: 'italic',
+  },
+  // View Details Section
+  viewDetailsSection: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  viewDetailsText: {
+    fontSize: 12,
+    color: '#1E6A65',
+    fontWeight: '600',
     fontStyle: 'italic',
   },
   // Full Screen Photo Modal Styles

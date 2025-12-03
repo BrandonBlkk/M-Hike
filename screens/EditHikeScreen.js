@@ -47,7 +47,6 @@ export default function EditHikeScreen({ navigation, route }) {
   const [hikeId, setHikeId] = useState(null);
   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false);
 
-  // Use refs to maintain input focus
   const inputRefs = {
     name: React.useRef(null),
     location: React.useRef(null),
@@ -57,7 +56,6 @@ export default function EditHikeScreen({ navigation, route }) {
     weather: React.useRef(null),
   };
 
-  // Get hike data from navigation params
   useEffect(() => {
     if (route.params?.hikeToEdit) {
       const hikeToEdit = route.params.hikeToEdit;
@@ -81,7 +79,6 @@ export default function EditHikeScreen({ navigation, route }) {
     }
   }, [route.params?.hikeToEdit]);
 
-  // Request permissions on component mount
   useEffect(() => {
     (async () => {
       const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
@@ -149,18 +146,15 @@ export default function EditHikeScreen({ navigation, route }) {
       [field]: value
     }));
 
-    // Real-time error removal
     if (errors[field]) {
       const fieldError = validateField(field, value);
       if (!fieldError) {
-        // Remove error if field is now valid
         setErrors(prevErrors => {
           const newErrors = { ...prevErrors };
           delete newErrors[field];
           return newErrors;
         });
       } else {
-        // Update error message if still invalid but value changed
         setErrors(prevErrors => ({
           ...prevErrors,
           [field]: fieldError
@@ -172,7 +166,6 @@ export default function EditHikeScreen({ navigation, route }) {
   const validateForm = () => {
     let newErrors = {};
     
-    // Validate all fields
     const fieldsToValidate = [
       { field: "name", value: hike.name },
       { field: "location", value: hike.location },
@@ -201,7 +194,6 @@ export default function EditHikeScreen({ navigation, route }) {
       setIsSubmitting(true);
       
       try {
-        // Update existing hike
         const result = await hikeRepository.updateHike(hikeId, hike);
         
         if (result.success) {
@@ -213,11 +205,16 @@ export default function EditHikeScreen({ navigation, route }) {
                 text: "OK",
                 onPress: () => {
                   setIsSubmitting(false);
-                  // Call the callback to refresh the list if it exists
                   if (route.params?.onHikeUpdated) {
                     route.params.onHikeUpdated();
                   }
-                  navigation.goBack();
+                  navigation.navigate('HikeDetails', { 
+                    hike: {
+                      ...hike,
+                      id: hikeId,
+                      length: hike.length.toString()
+                    }
+                  });
                 }
               }
             ]
@@ -262,9 +259,7 @@ export default function EditHikeScreen({ navigation, route }) {
   };
 
   const formatLength = (text) => {
-    // Allow only numbers and one decimal point
     const cleaned = text.replace(/[^0-9.]/g, '');
-    // Ensure only one decimal point
     const parts = cleaned.split('.');
     if (parts.length > 2) {
       return parts[0] + '.' + parts.slice(1).join('');
@@ -278,7 +273,6 @@ export default function EditHikeScreen({ navigation, route }) {
     if (isCompleted && !hike.completed_date) {
       handleChange('completed_date', new Date());
     } else if (!isCompleted) {
-      // Remove completed_date error when switching to not completed
       setErrors(prevErrors => {
         const newErrors = { ...prevErrors };
         delete newErrors.completed_date;
@@ -295,7 +289,6 @@ export default function EditHikeScreen({ navigation, route }) {
     handleChange("difficulty", itemValue);
   };
 
-  // Get Current Location
   const getCurrentLocation = async () => {
     if (!locationPermissionGranted) {
       Alert.alert(
@@ -367,7 +360,6 @@ export default function EditHikeScreen({ navigation, route }) {
     }
   };
 
-  // Photo Functions
   const takePhoto = async () => {
     try {
       const result = await ImagePicker.launchCameraAsync({
@@ -411,7 +403,6 @@ export default function EditHikeScreen({ navigation, route }) {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.greenBackground}>
-        {/* Title Bar */}
         <View style={[styles.titleBar]}>
           <Text style={styles.titleText}>Edit Hike</Text>
           <Text style={styles.subtitleText}>Update your hike details</Text>
@@ -428,7 +419,6 @@ export default function EditHikeScreen({ navigation, route }) {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/** Required Fields **/}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Name of Hike *</Text>
             <TextInput
@@ -470,7 +460,6 @@ export default function EditHikeScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
             {errors.location && <Text style={styles.error}>{errors.location}</Text>}
-            {/* Show coordinates if available */}
             {hike.locationCoords && (
               <Text style={styles.coordinatesText}>
                 📍 Coordinates: {hike.locationCoords.latitude.toFixed(6)}, {hike.locationCoords.longitude.toFixed(6)}
@@ -492,7 +481,6 @@ export default function EditHikeScreen({ navigation, route }) {
                 mode="date"
                 display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                 onChange={handleDateChange}
-                maximumDate={new Date()}
               />
             )}
             {errors.date && <Text style={styles.error}>{errors.date}</Text>}
@@ -560,7 +548,6 @@ export default function EditHikeScreen({ navigation, route }) {
             {errors.difficulty && <Text style={styles.error}>{errors.difficulty}</Text>}
           </View>
 
-          {/* Completion Status */}
           <View style={styles.inputGroup}>
             <View style={styles.completionContainer}>
               <View style={styles.completionLabel}>
@@ -594,7 +581,6 @@ export default function EditHikeScreen({ navigation, route }) {
                     mode="date"
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                     onChange={handleCompletedDateChange}
-                    maximumDate={new Date()}
                   />
                 )}
                 {errors.completed_date && <Text style={styles.error}>{errors.completed_date}</Text>}
@@ -602,7 +588,6 @@ export default function EditHikeScreen({ navigation, route }) {
             )}
           </View>
 
-          {/* Photo Section */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Photos ({hike.photos.length})</Text>
             <View style={styles.photoButtons}>
@@ -633,7 +618,6 @@ export default function EditHikeScreen({ navigation, route }) {
             )}
           </View>
 
-          {/* Optional Fields */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Description</Text>
             <TextInput
@@ -682,7 +666,6 @@ export default function EditHikeScreen({ navigation, route }) {
             />
           </View>
 
-          {/* Submit Button */}
           <TouchableOpacity 
             style={[styles.button, isSubmitting && styles.buttonDisabled]} 
             onPress={handleSubmit}
@@ -710,7 +693,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
-  // Title Bar 
   titleBar: {
     backgroundColor: '#ffffffff',
     paddingVertical: 12,
@@ -730,7 +712,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 2,
   },
-  // Scroll View
   scrollView: {
     flex: 1,
     backgroundColor: '#FFFFFF',
@@ -756,7 +737,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     fontSize: 16,
   },
-  // Location Styles
   locationContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -770,14 +750,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     borderRadius: 8,
   },
-  // Coordinates text style
   coordinatesText: {
     fontSize: 12,
     color: '#666',
     marginTop: 4,
     fontStyle: 'italic',
   },
-  // Completion Status Styles
   completionContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -799,7 +777,6 @@ const styles = StyleSheet.create({
   completedDateContainer: {
     marginTop: 12,
   },
-  // Photo Styles
   photoButtons: {
     flexDirection: 'row',
     gap: 12,

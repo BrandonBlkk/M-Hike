@@ -49,7 +49,7 @@ export default function MapScreen({ navigation, route }) {
             longitudeDelta: 0.01,
           });
         }
-        // Otherwise, set map region to show all markers if there are hikes with coordinates
+        // If there are hikes with coordinates, center map on them
         else if (hikesWithCoords.length > 0) {
           const coordinates = hikesWithCoords.map(hike => hike.locationCoords);
           const minLat = Math.min(...coordinates.map(coord => coord.latitude));
